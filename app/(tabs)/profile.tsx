@@ -1,5 +1,4 @@
-import useTheme from "@/hooks/useTheme";
-import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   Dimensions,
@@ -11,14 +10,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import useTheme from "@/hooks/useTheme";
+import { LoadingView } from "@/components/States";
+import { Id } from "@/convex/_generated/dataModel";
 
 const { width } = Dimensions.get("window");
-
-const stats = [
-  { id: "1", label: "Books Read", value: "15", icon: "book" },
-  { id: "2", label: "Hours Spent", value: "48", icon: "time" },
-  { id: "3", label: "Certificates", value: "3", icon: "ribbon" },
-];
 
 const menuItems = [
   {
@@ -27,6 +26,7 @@ const menuItems = [
     icon: "person-outline",
     color: "#3b82f6",
     hasArrow: true,
+    route: "/profile/edit" as any,
   },
   {
     id: "2",
@@ -55,7 +55,8 @@ const menuItems = [
     icon: "notifications-outline",
     color: "#8b5cf6",
     hasArrow: true,
-    hasSwitch: true,
+    hasSwitch: false,
+    route: "/notifications",
   },
   {
     id: "6",
@@ -87,11 +88,29 @@ const bottomMenuItems = [
 ];
 
 export default function Profile() {
+  const router = useRouter();
   const { colors, toggleDarkMode, isDarkMode } = useTheme();
+
+  // Placeholder user ID - in real app, get from auth context
+  const userId = "sample-user-id" as Id<"users">;
+
+  // Get user's borrowing stats
+  const stats = useQuery(
+    api.borrowings.getUserBorrowingStats,
+    userId ? { userId } : "skip"
+  );
+
+  const readingCount = stats?.reading || 0;
+  const finishedCount = stats?.finished || 0;
 
   const renderMenuItem = ({ item }: { item: typeof menuItems[0] }) => (
     <TouchableOpacity
       style={[styles.menuItem, { backgroundColor: colors.surface }]}
+      onPress={() => {
+        if (item.route) {
+          router.push(item.route);
+        }
+      }}
     >
       <View style={[styles.menuIcon, { backgroundColor: item.color + "20" }]}>
         <Ionicons name={item.icon as any} size={22} color={item.color} />
@@ -139,6 +158,10 @@ export default function Profile() {
     </TouchableOpacity>
   );
 
+  if (!stats) {
+    return <LoadingView message="Loading profile..." />;
+  }
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.bg }]}
@@ -164,21 +187,33 @@ export default function Profile() {
 
       {/* Stats */}
       <View style={styles.statsContainer}>
-        {stats.map((stat) => (
-          <View key={stat.id} style={[styles.statCard, { backgroundColor: colors.surface }]}>
-            <Ionicons
-              name={stat.icon as any}
-              size={24}
-              color={colors.primary}
-            />
-            <Text style={[styles.statValue, { color: colors.text }]}>
-              {stat.value}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.textMuted }]}>
-              {stat.label}
-            </Text>
-          </View>
-        ))}
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <Ionicons name="book-outline" size={24} color={colors.primary} />
+          <Text style={[styles.statValue, { color: colors.text }]}>
+            {readingCount}
+          </Text>
+          <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+            Reading
+          </Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <Ionicons name="checkmark-circle-outline" size={24} color={colors.success} />
+          <Text style={[styles.statValue, { color: colors.text }]}>
+            {finishedCount}
+          </Text>
+          <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+            Finished
+          </Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <Ionicons name="star-outline" size={24} color={colors.warning} />
+          <Text style={[styles.statValue, { color: colors.text }]}>
+            {stats.total}
+          </Text>
+          <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+            Total
+          </Text>
+        </View>
       </View>
 
       {/* Menu Items */}
@@ -328,4 +363,3 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
 });
-

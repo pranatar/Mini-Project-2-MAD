@@ -1,203 +1,138 @@
-import useTheme from "@/hooks/useTheme";
-import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import { useLocalSearchParams } from "expo-router";
+import React, { useState, useMemo } from "react";
 import {
   FlatList,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
-
-const recentSearches = [
-  "Atomic Habits",
-  "The Psychology of Money",
-  "Deep Work",
-  "Sapiens",
-];
-
-const categories = [
-  { id: "1", name: "All", active: true },
-  { id: "2", name: "Fiction", active: false },
-  { id: "3", name: "Science", active: false },
-  { id: "4", name: "Business", active: false },
-  { id: "5", name: "History", active: false },
-];
-
-const searchResults = [
-  {
-    id: "1",
-    title: "Atomic Habits",
-    author: "James Clear",
-    cover: "📚",
-    category: "Self-Help",
-  },
-  {
-    id: "2",
-    title: "The Psychology of Money",
-    author: "Morgan Housel",
-    cover: "💰",
-    category: "Finance",
-  },
-  {
-    id: "3",
-    title: "Deep Work",
-    author: "Cal Newport",
-    cover: "🎯",
-    category: "Productivity",
-  },
-  {
-    id: "4",
-    title: "Sapiens",
-    author: "Yuval Noah Harari",
-    cover: "🌍",
-    category: "History",
-  },
-  {
-    id: "5",
-    title: "Thinking, Fast and Slow",
-    author: "Daniel Kahneman",
-    cover: "🧠",
-    category: "Psychology",
-  },
-];
+import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import useTheme from "@/hooks/useTheme";
+import BookCard from "@/components/BookCard";
+import { LoadingView, EmptyState } from "@/components/States";
+import { Id } from "@/convex/_generated/dataModel";
 
 export default function Search() {
+  const { category } = useLocalSearchParams<{ category?: string }>();
   const { colors } = useTheme();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("1");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(category || null);
+
+  // Fetch data from Convex - only filter by category
+  const allBooks = useQuery(api.books.getBooks, {
+    category: selectedCategory || undefined,
+  }) ?? [];
+
+  const categories = useQuery(api.books.getCategories) ?? [];
+
+  // Add "All" category at the beginning
+  const allCategories = useMemo(() => ["All", ...categories], [categories]);
+
+  const handleBookPress = (bookId: Id<"books">) => {
+    console.log("Book pressed:", bookId);
+  };
+
+  if (!allBooks || !categories) {
+    return <LoadingView message="Loading categories..." />;
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View
-          style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        >
-          <Ionicons name="search" size={20} color={colors.textMuted} />
-          <TextInput
-            placeholder="Search books, authors, ISBN..."
-            placeholderTextColor={colors.textMuted}
-            style={[styles.searchInput, { color: colors.text }]}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Ionicons name="close-circle" size={20} color={colors.textMuted} />
-            </TouchableOpacity>
-          )}
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          Browse by Category
+        </Text>
+        <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
+          Select a category to find your books
+        </Text>
       </View>
 
-      {/* Categories */}
+      {/* Categories Filter */}
       <View style={styles.categoriesContainer}>
         <FlatList
-          data={categories}
+          data={allCategories}
           horizontal
           showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => `${item}-${index}`}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[
                 styles.categoryChip,
                 {
                   backgroundColor:
-                    selectedCategory === item.id
+                    selectedCategory === item || (selectedCategory === null && item === "All")
                       ? colors.primary
                       : colors.surface,
+                  borderColor: colors.border,
                 },
               ]}
-              onPress={() => setSelectedCategory(item.id)}
+              onPress={() => setSelectedCategory(item === "All" ? null : item)}
             >
+              <Ionicons
+                name={
+                  selectedCategory === item || (selectedCategory === null && item === "All")
+                    ? "filter"
+                    : "bookmark-outline"
+                }
+                size={16}
+                color={
+                  selectedCategory === item || (selectedCategory === null && item === "All")
+                    ? "#fff"
+                    : colors.textMuted
+                }
+              />
               <Text
                 style={[
                   styles.categoryText,
                   {
                     color:
-                      selectedCategory === item.id ? "#fff" : colors.text,
+                      selectedCategory === item || (selectedCategory === null && item === "All")
+                        ? "#fff"
+                        : colors.text,
                   },
                 ]}
               >
-                {item.name}
-              </Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-
-      {/* Recent Searches */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Recent Searches
-          </Text>
-          <TouchableOpacity>
-            <Text style={[styles.clearText, { color: colors.primary }]}>
-              Clear All
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.recentList}>
-          {recentSearches.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[styles.recentItem, { backgroundColor: colors.surface }]}
-            >
-              <Ionicons name="time-outline" size={16} color={colors.textMuted} />
-              <Text style={[styles.recentText, { color: colors.text }]}>
                 {item}
               </Text>
             </TouchableOpacity>
-          ))}
-        </View>
+          )}
+        />
       </View>
 
-      {/* Search Results */}
+      {/* Books by Category */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          {searchQuery ? `Results for "${searchQuery}"` : "Popular Books"}
+          {selectedCategory ? selectedCategory : "All Books"}{" "}
+          <Text style={[styles.count, { color: colors.textMuted }]}>
+            ({allBooks.length})
+          </Text>
         </Text>
-        <FlatList
-          data={searchResults}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.resultItem, { backgroundColor: colors.surface }]}
-            >
-              <View
-                style={[
-                  styles.resultCover,
-                  { backgroundColor: colors.gradients.primary[0] },
-                ]}
-              >
-                <Text style={styles.resultEmoji}>{item.cover}</Text>
-              </View>
-              <View style={styles.resultInfo}>
-                <Text style={[styles.resultTitle, { color: colors.text }]}>
-                  {item.title}
-                </Text>
-                <Text style={[styles.resultAuthor, { color: colors.textMuted }]}>
-                  {item.author}
-                </Text>
-                <View
-                  style={[
-                    styles.categoryBadge,
-                    { backgroundColor: colors.border },
-                  ]}
-                >
-                  <Text style={[styles.categoryBadgeText, { color: colors.textMuted }]}>
-                    {item.category}
-                  </Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-            </TouchableOpacity>
-          )}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.resultsList}
-        />
+
+        {allBooks.length === 0 ? (
+          <EmptyState
+            icon="📚"
+            title="No books in this category"
+            message="Books will appear here once they are added to the library"
+          />
+        ) : (
+          <FlatList
+            data={allBooks}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item }) => (
+              <BookCard
+                book={item}
+                variant="horizontal"
+                showRating={true}
+                onPress={() => handleBookPress(item._id)}
+              />
+            )}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.resultsList}
+          />
+        )}
       </View>
     </View>
   );
@@ -207,32 +142,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  searchContainer: {
+  header: {
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 20,
+    paddingBottom: 15,
   },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
   },
-  searchInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 16,
+  headerSubtitle: {
+    fontSize: 14,
+    marginTop: 4,
   },
   categoriesContainer: {
-    paddingTop: 15,
     paddingLeft: 20,
+    paddingBottom: 15,
   },
   categoryChip: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 20,
     marginRight: 10,
+    borderWidth: 1,
+    gap: 6,
   },
   categoryText: {
     fontSize: 14,
@@ -240,81 +175,18 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
+    flex: 1,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
+    marginBottom: 12,
   },
-  clearText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  recentList: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  recentItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 10,
-    marginBottom: 10,
-  },
-  recentText: {
-    marginLeft: 6,
-    fontSize: 14,
+  count: {
+    fontSize: 16,
+    fontWeight: "normal",
   },
   resultsList: {
     paddingBottom: 20,
   },
-  resultItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  resultCover: {
-    width: 60,
-    height: 80,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  resultEmoji: {
-    fontSize: 28,
-  },
-  resultInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  resultTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  resultAuthor: {
-    fontSize: 13,
-    marginTop: 2,
-    marginBottom: 6,
-  },
-  categoryBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  categoryBadgeText: {
-    fontSize: 11,
-    fontWeight: "500",
-  },
 });
-

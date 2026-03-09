@@ -1,50 +1,216 @@
-# Welcome to your Expo app 👋
+# Digital Library - Mobile Application 📚
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A modern mobile library application built with Expo React Native and Convex backend.
 
-## Get started
+## Features ✨
 
-1. Install dependencies
+### Core Features
+- **📖 Browse Books** - Explore books by category with beautiful grid and list views
+- **🔍 Search** - Advanced search with filters by category, title, and author
+- **📚 Borrowing System** - Borrow and return books with due date tracking
+- **⭐ Favorites** - Save your favorite books for quick access
+- **📊 Reading Progress** - Track your reading progress with percentage
+- **🔔 Notifications** - Get notified about due dates, overdue books, and more
+- **🌙 Dark Mode** - Toggle between light and dark themes
 
-   ```bash
-   npm install
-   ```
+### User Features
+- View featured and popular books
+- Browse by categories (Fiction, Science, History, etc.)
+- Search books by title, author, or ISBN
+- Borrow books with automatic availability tracking
+- Return books with overdue detection
+- Extend borrowing period (up to 2 times)
+- Rate and review books
+- Track reading statistics
+- Manage favorites collection
 
-2. Start the app
+## Tech Stack 🛠
 
-   ```bash
-   npx expo start
-   ```
+- **Frontend**: React Native with Expo SDK 54
+- **Backend**: Convex (serverless backend)
+- **Navigation**: Expo Router (file-based routing)
+- **State Management**: Convex React Hooks
+- **Styling**: React Native StyleSheet
+- **Theme**: Custom theme provider with dark mode support
+- **TypeScript**: Full type safety
 
-In the output, you'll find options to open the app in a
+## Project Structure 📁
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+mad/
+├── app/                      # Expo Router pages
+│   ├── (tabs)/              # Main tab navigation
+│   │   ├── index.tsx        # Home screen
+│   │   ├── search.tsx       # Search screen
+│   │   ├── ebooks.tsx       # E-Library screen
+│   │   ├── mybooks.tsx      # User's books screen
+│   │   └── profile.tsx      # Profile screen
+│   ├── book/
+│   │   └── [id].tsx         # Book detail screen
+│   ├── notifications/
+│   │   └── index.tsx        # Notifications screen
+│   └── _layout.tsx          # Root layout
+├── components/              # Reusable components
+│   ├── BookCard.tsx         # Book card component
+│   └── States.tsx           # Loading, Empty, Error states
+├── convex/                  # Convex backend
+│   ├── books.ts             # Books queries & mutations
+│   ├── borrowings.ts        # Borrowing system
+│   ├── favorites.ts         # Favorites management
+│   ├── notifications.ts     # Notifications system
+│   ├── readingProgress.ts   # Reading progress tracking
+│   ├── reviews.ts           # Reviews system
+│   ├── users.ts             # User management
+│   ├── schema.ts            # Database schema
+│   └── seed.ts              # Sample data seeder
+├── hooks/                   # Custom React hooks
+│   └── useTheme.tsx         # Theme management
+└── assets/                  # Images and static assets
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Database Schema 🗄
 
-## Learn more
+### Collections
+- **users** - User accounts
+- **books** - Book catalog
+- **borrowings** - Book borrowing records
+- **favorites** - User's favorite books
+- **readingProgress** - Reading progress tracking
+- **reviews** - Book reviews and ratings
+- **notifications** - User notifications
 
-To learn more about developing your project with Expo, look at the following resources:
+## Getting Started 🚀
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+- Expo CLI
+- Convex account (for backend)
 
-## Join the community
+### Installation
 
-Join our community of developers creating universal apps.
+1. Clone the repository
+```bash
+git clone <repository-url>
+cd mad
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+2. Install dependencies
+```bash
+npm install
+```
+
+3. Set up Convex backend
+```bash
+npx convex dev
+```
+
+4. Seed the database (optional)
+```bash
+npx convex run seed
+```
+
+5. Start the development server
+```bash
+npm start
+```
+
+### Running the App
+
+- **iOS Simulator**: `npm run ios`
+- **Android Emulator**: `npm run android`
+- **Web Browser**: `npm run web`
+- **Physical Device**: Scan QR code with Expo Go app
+
+## Available Scripts 📜
+
+- `npm start` - Start Expo development server
+- `npm run android` - Run on Android emulator
+- `npm run ios` - Run on iOS simulator
+- `npm run web` - Run in web browser
+- `npm run lint` - Run ESLint
+
+## API Reference 🔌
+
+### Books
+- `getBooks` - Get all books with optional filters
+- `getFeaturedBooks` - Get highly-rated books
+- `getBookById` - Get single book details
+- `getCategories` - Get all categories
+- `createBook` - Add new book (admin)
+
+### Borrowings
+- `getUserBorrowings` - Get user's borrowed books
+- `borrowBook` - Borrow a book
+- `returnBook` - Return a borrowed book
+- `extendBorrowing` - Extend borrowing period
+- `checkOverdueBooks` - Check for overdue books
+
+### Favorites
+- `getUserFavorites` - Get user's favorites
+- `addToFavorites` - Add book to favorites
+- `removeFromFavorites` - Remove from favorites
+- `isFavorite` - Check if book is favorited
+
+### Reading Progress
+- `getUserReadingProgress` - Get all reading progress
+- `getBookProgress` - Get progress for specific book
+- `updateReadingProgress` - Update reading progress
+
+### Notifications
+- `getUserNotifications` - Get user notifications
+- `markNotificationAsRead` - Mark as read
+- `markAllNotificationsAsRead` - Mark all as read
+- `getUnreadCount` - Get unread count
+
+## UI Components 🎨
+
+### BookCard
+Reusable component for displaying book information.
+
+```tsx
+<BookCard
+  book={bookData}
+  variant="default" | "compact" | "horizontal"
+  showRating={true}
+  showAvailability={true}
+  onPress={() => handlePress()}
+/>
+```
+
+### States
+Loading, Empty, and Error state components.
+
+```tsx
+<LoadingView message="Loading..." />
+<EmptyState icon="📚" title="No books" message="Try again" />
+<ErrorState message="Error occurred" onRetry={() => retry()} />
+```
+
+## Theme 🎨
+
+The app supports both light and dark modes with a custom theme provider.
+
+### Colors
+- Primary: Blue (#3b82f6)
+- Success: Green (#10b981)
+- Warning: Orange (#f59e0b)
+- Danger: Red (#ef4444)
+
+## Contributing 🤝
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License 📄
+
+This project is licensed under the MIT License.
+
+## Acknowledgments 🙏
+
+- Built with [Expo](https://expo.dev/)
+- Backend by [Convex](https://convex.dev/)
+- Icons by [Ionicons](https://ionic.io/ionicons)

@@ -1,5 +1,4 @@
-import useTheme from "@/hooks/useTheme";
-import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   FlatList,
@@ -9,38 +8,33 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-// Sample book data
-const featuredBooks = [
-  { id: "1", title: "The Great Gatsby", author: "F. Scott Fitzgerald", cover: "📖" },
-  { id: "2", title: "1984", author: "George Orwell", cover: "📕" },
-  { id: "3", title: "To Kill a Mockingbird", author: "Harper Lee", cover: "📗" },
-  { id: "4", title: "Pride and Prejudice", author: "Jane Austen", cover: "📘" },
-];
-
-const categories = [
-  { id: "1", name: "Fiction", icon: "book" },
-  { id: "2", name: "Science", icon: "flask" },
-  { id: "3", name: "History", icon: "time" },
-  { id: "4", name: "Biography", icon: "person" },
-];
+import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import useTheme from "@/hooks/useTheme";
+import BookCard from "@/components/BookCard";
+import { LoadingView } from "@/components/States";
+import { Id } from "@/convex/_generated/dataModel";
 
 export default function Index() {
+  const router = useRouter();
   const { colors, toggleDarkMode, isDarkMode } = useTheme();
 
-  const renderFeaturedBook = ({ item }: { item: typeof featuredBooks[0] }) => (
-    <TouchableOpacity style={[styles.bookCard, { backgroundColor: colors.surface }]}>
-      <View style={[styles.bookCover, { backgroundColor: colors.gradients.primary[0] }]}>
-        <Text style={styles.bookEmoji}>{item.cover}</Text>
-      </View>
-      <Text style={[styles.bookTitle, { color: colors.text }]} numberOfLines={1}>
-        {item.title}
-      </Text>
-      <Text style={[styles.bookAuthor, { color: colors.textMuted }]} numberOfLines={1}>
-        {item.author}
-      </Text>
-    </TouchableOpacity>
-  );
+  // Fetch data from Convex
+  const featuredBooks = useQuery(api.books.getFeaturedBooks, { limit: 10 }) ?? [];
+  const categories = useQuery(api.books.getCategories) ?? [];
+
+  const handleBookPress = (bookId: Id<"books">) => {
+    router.push({ pathname: `/book/[id]`, params: { id: bookId } } as any);
+  };
+
+  const handleCategoryPress = (category: string) => {
+    router.push(`/search?category=${encodeURIComponent(category)}`);
+  };
+
+  if (!featuredBooks || !categories) {
+    return <LoadingView message="Loading library..." />;
+  }
 
   return (
     <ScrollView
@@ -74,15 +68,24 @@ export default function Index() {
 
       {/* Quick Actions */}
       <View style={styles.quickActions}>
-        <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.gradients.primary[0] }]}>
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: colors.gradients.primary[0] }]}
+          onPress={() => router.push("/search")}
+        >
           <Ionicons name="search" size={24} color="#fff" />
           <Text style={styles.actionText}>Search</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.gradients.success[0] }]}>
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: colors.gradients.success[0] }]}
+          onPress={() => router.push("/ebooks")}
+        >
           <Ionicons name="library" size={24} color="#fff" />
           <Text style={styles.actionText}>E-Library</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.gradients.warning[0] }]}>
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: colors.gradients.warning[0] }]}
+          onPress={() => router.push("/mybooks")}
+        >
           <Ionicons name="bookmark" size={24} color="#fff" />
           <Text style={styles.actionText}>My Books</Text>
         </TouchableOpacity>
@@ -94,18 +97,15 @@ export default function Index() {
           Browse Categories
         </Text>
         <View style={styles.categoriesGrid}>
-          {categories.map((category) => (
+          {categories.slice(0, 4).map((category: string, index: number) => (
             <TouchableOpacity
-              key={category.id}
+              key={index}
               style={[styles.categoryCard, { backgroundColor: colors.surface }]}
+              onPress={() => handleCategoryPress(category)}
             >
-              <Ionicons
-                name={category.icon as any}
-                size={28}
-                color={colors.primary}
-              />
+              <Ionicons name="book-outline" size={28} color={colors.primary} />
               <Text style={[styles.categoryName, { color: colors.text }]}>
-                {category.name}
+                {category}
               </Text>
             </TouchableOpacity>
           ))}
@@ -118,7 +118,7 @@ export default function Index() {
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Featured Books
           </Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/ebooks")}>
             <Text style={[styles.seeAll, { color: colors.primary }]}>
               See All
             </Text>
@@ -126,21 +126,27 @@ export default function Index() {
         </View>
         <FlatList
           data={featuredBooks}
-          renderItem={renderFeaturedBook}
-          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <BookCard
+              book={item}
+              variant="default"
+              onPress={() => handleBookPress(item._id)}
+            />
+          )}
+          keyExtractor={(item) => item._id}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.featuredList}
         />
       </View>
 
-      {/* Continue Reading */}
+      {/* Continue Reading - Placeholder */}
       <View style={[styles.section, styles.lastSection]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Continue Reading
         </Text>
         <TouchableOpacity style={[styles.continueCard, { backgroundColor: colors.surface }]}>
-          <View style={[styles.continueCover, { backgroundColor: colors.gradients.danger[0] }]}>
+          <View style={[styles.continueCover, { backgroundColor: colors.gradients.primary[0] }]}>
             <Text style={styles.bookEmoji}>📚</Text>
           </View>
           <View style={styles.continueInfo}>
@@ -154,7 +160,7 @@ export default function Index() {
               <View
                 style={[
                   styles.progressFill,
-                  { backgroundColor: colors.primary, width: "45%" },
+                  { backgroundColor: colors.primary, width: "45%" as any },
                 ]}
               />
             </View>
@@ -253,7 +259,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   categoryCard: {
-    width: "48%",
+    width: "48%" as any,
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
@@ -271,35 +277,6 @@ const styles = StyleSheet.create({
   },
   featuredList: {
     paddingRight: 20,
-  },
-  bookCard: {
-    width: 130,
-    marginRight: 15,
-    padding: 12,
-    borderRadius: 12,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  bookCover: {
-    height: 120,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  bookEmoji: {
-    fontSize: 40,
-  },
-  bookTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 2,
-  },
-  bookAuthor: {
-    fontSize: 12,
   },
   continueCard: {
     flexDirection: "row",
@@ -338,12 +315,14 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   progressFill: {
-    height: "100%",
+    height: 6,
     borderRadius: 3,
   },
   progressText: {
     fontSize: 11,
     marginTop: 4,
   },
+  bookEmoji: {
+    fontSize: 40,
+  },
 });
-

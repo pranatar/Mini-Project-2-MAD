@@ -1,5 +1,4 @@
-import useTheme from "@/hooks/useTheme";
-import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Dimensions,
@@ -7,8 +6,14 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import useTheme from "@/hooks/useTheme";
+import { LoadingView, EmptyState } from "@/components/States";
+import { Id } from "@/convex/_generated/dataModel";
 
 const { width } = Dimensions.get("window");
 
@@ -18,122 +23,118 @@ const tabs = [
   { id: "3", name: "Favorites" },
 ];
 
-const readingBooks = [
-  {
-    id: "1",
-    title: "Atomic Habits",
-    author: "James Clear",
-    cover: "📚",
-    progress: 45,
-    lastRead: "2 hours ago",
-  },
-  {
-    id: "2",
-    title: "The Psychology of Money",
-    author: "Morgan Housel",
-    cover: "💰",
-    progress: 28,
-    lastRead: "Yesterday",
-  },
-  {
-    id: "3",
-    title: "Deep Work",
-    author: "Cal Newport",
-    cover: "🎯",
-    progress: 72,
-    lastRead: "3 days ago",
-  },
-];
-
-const finishedBooks = [
-  {
-    id: "4",
-    title: "Sapiens",
-    author: "Yuval Noah Harari",
-    cover: "🌍",
-    rating: 5,
-    finishedDate: "Jan 2024",
-  },
-  {
-    id: "5",
-    title: "Think and Grow Rich",
-    author: "Napoleon Hill",
-    cover: "💎",
-    rating: 4,
-    finishedDate: "Dec 2023",
-  },
-];
-
-const favoriteBooks = [
-  {
-    id: "1",
-    title: "Atomic Habits",
-    author: "James Clear",
-    cover: "📚",
-  },
-  {
-    id: "4",
-    title: "Sapiens",
-    author: "Yuval Noah Harari",
-    cover: "🌍",
-  },
-  {
-    id: "6",
-    title: "The 7 Habits",
-    author: "Stephen Covey",
-    cover: "🌟",
-  },
-];
-
 export default function MyBooks() {
+  const router = useRouter();
   const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState("1");
 
-  const renderReadingBook = ({ item }: { item: typeof readingBooks[0] }) => (
-    <TouchableOpacity
-      style={[styles.bookCard, { backgroundColor: colors.surface }]}
-    >
-      <View
-        style={[
-          styles.bookCover,
-          { backgroundColor: colors.gradients.primary[0] },
-        ]}
-      >
-        <Text style={styles.bookEmoji}>{item.cover}</Text>
-      </View>
-      <View style={styles.bookInfo}>
-        <Text style={[styles.bookTitle, { color: colors.text }]} numberOfLines={1}>
-          {item.title}
-        </Text>
-        <Text style={[styles.bookAuthor, { color: colors.textMuted }]} numberOfLines={1}>
-          {item.author}
-        </Text>
-        <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
-          <View
-            style={[
-              styles.progressFill,
-              { backgroundColor: colors.primary, width: `${item.progress}%` },
-            ]}
-          />
-        </View>
-        <View style={styles.progressRow}>
-          <Text style={[styles.progressText, { color: colors.textMuted }]}>
-            {item.progress}% complete
-          </Text>
-          <Text style={[styles.lastRead, { color: colors.textMuted }]}>
-            {item.lastRead}
-          </Text>
-        </View>
-      </View>
-      <TouchableOpacity style={styles.continueButton}>
-        <Ionicons name="play" size={20} color="#fff" />
-      </TouchableOpacity>
-    </TouchableOpacity>
+  // Placeholder user ID - in real app, get from auth context
+  const userId = "sample-user-id" as Id<"users">;
+
+  // Fetch user's borrowings
+  const borrowings = useQuery(
+    api.borrowings.getUserBorrowings,
+    userId ? { userId } : "skip"
   );
+
+  // Fetch user's favorites
+  const favorites = useQuery(
+    api.favorites.getUserFavorites,
+    userId ? { userId } : "skip"
+  );
+
+  // Fetch user's reading progress
+  const readingProgress = useQuery(
+    api.readingProgress.getUserReadingProgress,
+    userId ? { userId } : "skip"
+  );
+
+  const returnBook = useMutation(api.borrowings.returnBook);
+
+  const handleReturn = async (borrowingId: Id<"borrowings">) => {
+    try {
+      await returnBook({ borrowingId });
+      alert("Book returned successfully!");
+    } catch (error: any) {
+      alert(error.message || "Failed to return book");
+    }
+  };
+
+  const handleBookPress = (bookId: Id<"books">) => {
+    router.push({ pathname: `/book/[id]`, params: { id: bookId } } as any);
+  };
+
+  // Filter books based on active tab
+  const readingBooks = (borrowings || []).filter((b: any) => b.status === "borrowed");
+  const finishedBooks = (borrowings || []).filter((b: any) => b.status === "returned");
+  const favoriteBooks = favorites || [];
+
+  // Get stats
+  const stats = {
+    reading: readingBooks.length,
+    finished: finishedBooks.length,
+    favorites: favoriteBooks.length,
+  };
+
+  if (!borrowings || !favorites || !readingProgress) {
+    return <LoadingView message="Loading your books..." />;
+  }
+
+  const renderReadingBook = ({ item }: { item: typeof readingBooks[0] }) => {
+    const progress = (readingProgress || []).find((p: any) => p.bookId === item.bookId);
+    const percentage = progress?.percentage || 0;
+
+    return (
+      <TouchableOpacity
+        style={[styles.bookCard, { backgroundColor: colors.surface }]}
+        onPress={() => handleBookPress(item.book._id)}
+      >
+        <View
+          style={[
+            styles.bookCover,
+            { backgroundColor: colors.gradients.primary[0] },
+          ]}
+        >
+          <Text style={styles.bookEmoji}>{item.book.coverImage}</Text>
+        </View>
+        <View style={styles.bookInfo}>
+          <Text style={[styles.bookTitle, { color: colors.text }]} numberOfLines={1}>
+            {item.book.title}
+          </Text>
+          <Text style={[styles.bookAuthor, { color: colors.textMuted }]} numberOfLines={1}>
+            {item.book.author}
+          </Text>
+          <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
+            <View
+              style={[
+                styles.progressFill,
+                { backgroundColor: colors.primary, width: `${percentage}%` as any },
+              ]}
+            />
+          </View>
+          <View style={styles.progressRow}>
+            <Text style={[styles.progressText, { color: colors.textMuted }]}>
+              {percentage}% complete
+            </Text>
+            <Text style={[styles.dueDate, { color: item.status === "overdue" ? colors.danger : colors.textMuted }]}>
+              Due: {new Date(item.dueDate).toLocaleDateString()}
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => handleReturn(item._id)}
+        >
+          <Ionicons name="return-up-back-outline" size={20} color="#fff" />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    );
+  };
 
   const renderFinishedBook = ({ item }: { item: typeof finishedBooks[0] }) => (
     <TouchableOpacity
       style={[styles.bookCard, { backgroundColor: colors.surface }]}
+      onPress={() => handleBookPress(item.book._id)}
     >
       <View
         style={[
@@ -141,27 +142,27 @@ export default function MyBooks() {
           { backgroundColor: colors.gradients.success[0] },
         ]}
       >
-        <Text style={styles.bookEmoji}>{item.cover}</Text>
+        <Text style={styles.bookEmoji}>{item.book.coverImage}</Text>
       </View>
       <View style={styles.bookInfo}>
         <Text style={[styles.bookTitle, { color: colors.text }]} numberOfLines={1}>
-          {item.title}
+          {item.book.title}
         </Text>
         <Text style={[styles.bookAuthor, { color: colors.textMuted }]} numberOfLines={1}>
-          {item.author}
+          {item.book.author}
         </Text>
         <View style={styles.ratingRow}>
           {[1, 2, 3, 4, 5].map((star) => (
             <Ionicons
               key={star}
-              name={star <= item.rating ? "star" : "star-outline"}
+              name={star <= 5 ? "star" : "star-outline"}
               size={14}
               color="#fbbf24"
             />
           ))}
         </View>
         <Text style={[styles.finishedDate, { color: colors.textMuted }]}>
-          Finished: {item.finishedDate}
+          Returned: {item.returnDate ? new Date(item.returnDate).toLocaleDateString() : "N/A"}
         </Text>
       </View>
     </TouchableOpacity>
@@ -170,6 +171,7 @@ export default function MyBooks() {
   const renderFavoriteBook = ({ item }: { item: typeof favoriteBooks[0] }) => (
     <TouchableOpacity
       style={[styles.favoriteCard, { backgroundColor: colors.surface }]}
+      onPress={() => handleBookPress(item.book._id)}
     >
       <View
         style={[
@@ -177,13 +179,13 @@ export default function MyBooks() {
           { backgroundColor: colors.gradients.warning[0] },
         ]}
       >
-        <Text style={styles.bookEmoji}>{item.cover}</Text>
+        <Text style={styles.bookEmoji}>{item.book.coverImage}</Text>
       </View>
       <Text style={[styles.bookTitle, { color: colors.text }]} numberOfLines={1}>
-        {item.title}
+        {item.book.title}
       </Text>
       <Text style={[styles.bookAuthor, { color: colors.textMuted }]} numberOfLines={1}>
-        {item.author}
+        {item.book.author}
       </Text>
     </TouchableOpacity>
   );
@@ -193,17 +195,17 @@ export default function MyBooks() {
       {/* Stats Header */}
       <View style={[styles.statsHeader, { backgroundColor: colors.surface }]}>
         <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: colors.primary }]}>3</Text>
+          <Text style={[styles.statNumber, { color: colors.primary }]}>{stats.reading}</Text>
           <Text style={[styles.statLabel, { color: colors.textMuted }]}>Reading</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
         <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: colors.success }]}>12</Text>
+          <Text style={[styles.statNumber, { color: colors.success }]}>{stats.finished}</Text>
           <Text style={[styles.statLabel, { color: colors.textMuted }]}>Finished</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
         <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: colors.warning }]}>8</Text>
+          <Text style={[styles.statNumber, { color: colors.warning }]}>{stats.favorites}</Text>
           <Text style={[styles.statLabel, { color: colors.textMuted }]}>Favorites</Text>
         </View>
       </View>
@@ -243,33 +245,61 @@ export default function MyBooks() {
 
       {/* Content */}
       {activeTab === "1" && (
-        <FlatList
-          data={readingBooks}
-          renderItem={renderReadingBook}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-        />
+        readingBooks.length === 0 ? (
+          <EmptyState
+            icon="📚"
+            title="No books being read"
+            message="Start borrowing books to see them here"
+            actionLabel="Browse Books"
+            onAction={() => router.push("/ebooks")}
+          />
+        ) : (
+          <FlatList
+            data={readingBooks}
+            renderItem={renderReadingBook}
+            keyExtractor={(item) => item._id}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+          />
+        )
       )}
       {activeTab === "2" && (
-        <FlatList
-          data={finishedBooks}
-          renderItem={renderFinishedBook}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-        />
+        finishedBooks.length === 0 ? (
+          <EmptyState
+            icon="✅"
+            title="No finished books"
+            message="Books you've returned will appear here"
+          />
+        ) : (
+          <FlatList
+            data={finishedBooks}
+            renderItem={renderFinishedBook}
+            keyExtractor={(item) => item._id}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+          />
+        )
       )}
       {activeTab === "3" && (
-        <FlatList
-          data={favoriteBooks}
-          renderItem={renderFavoriteBook}
-          keyExtractor={(item) => item.id}
-          numColumns={3}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.favoritesList}
-          columnWrapperStyle={styles.favoritesRow}
-        />
+        favoriteBooks.length === 0 ? (
+          <EmptyState
+            icon="❤️"
+            title="No favorites yet"
+            message="Add books to favorites to see them here"
+            actionLabel="Explore Books"
+            onAction={() => router.push("/ebooks")}
+          />
+        ) : (
+          <FlatList
+            data={favoriteBooks}
+            renderItem={renderFavoriteBook}
+            keyExtractor={(item) => item._id}
+            numColumns={3}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.favoritesList}
+            columnWrapperStyle={styles.favoritesRow}
+          />
+        )
       )}
     </View>
   );
@@ -357,7 +387,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   progressFill: {
-    height: "100%",
+    height: 6,
     borderRadius: 3,
   },
   progressRow: {
@@ -368,10 +398,10 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 11,
   },
-  lastRead: {
+  dueDate: {
     fontSize: 11,
   },
-  continueButton: {
+  actionButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -402,4 +432,3 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 });
-
