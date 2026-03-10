@@ -36,6 +36,7 @@ const menuItems = [
     icon: "stats-chart-outline",
     color: "#10b981",
     hasArrow: true,
+    route: "/profile/stats" as any,
   },
   {
     id: "3",
@@ -43,6 +44,7 @@ const menuItems = [
     icon: "folder-outline",
     color: "#f59e0b",
     hasArrow: true,
+    route: "/profile/collections" as any,
   },
   {
     id: "4",
@@ -50,6 +52,7 @@ const menuItems = [
     icon: "flag-outline",
     color: "#ef4444",
     hasArrow: true,
+    route: "/profile/goals" as any,
   },
   {
     id: "5",
@@ -87,11 +90,13 @@ const bottomMenuItems = [
     id: "1",
     title: "Help & Support",
     icon: "help-circle-outline",
+    route: "/profile/help" as any,
   },
   {
     id: "2",
     title: "About App",
     icon: "information-circle-outline",
+    route: "/profile/about" as any,
   },
   {
     id: "3",
@@ -194,6 +199,8 @@ export default function Profile() {
               ]
             );
           }
+        } else if (item.route) {
+          router.push(item.route);
         }
       }}
     >

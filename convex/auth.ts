@@ -8,6 +8,7 @@ export const getOrCreateGoogleUser = mutation({
     name: v.string(),
     googleId: v.string(),
     avatar: v.optional(v.string()),
+    role: v.optional(v.union(v.literal("mahasiswa"), v.literal("admin"))),
   },
   handler: async (ctx, args) => {
     // Try to find existing user by googleId
@@ -41,7 +42,7 @@ export const getOrCreateGoogleUser = mutation({
       name: args.name,
       avatar: args.avatar,
       googleId: args.googleId,
-      role: "mahasiswa", // Default role
+      role: args.role || "mahasiswa", // Use provided role or default
       createdAt: Date.now(),
     });
 
@@ -92,6 +93,14 @@ export const updateUserRole = mutation({
     role: v.union(v.literal("mahasiswa"), v.literal("admin")),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    // Block promotion from student to admin
+    if (user.role === "mahasiswa" && args.role === "admin") {
+      throw new Error("Mahasiswa accounts cannot be promoted to admin. Please create a new account.");
+    }
+
     await ctx.db.patch(args.userId, { role: args.role });
     return await ctx.db.get(args.userId);
   },

@@ -53,6 +53,15 @@ function RootLayoutContent() {
           <Stack.Screen name="book" />
           <Stack.Screen name="notifications" />
           <Stack.Screen name="profile" />
+          <Stack.Screen name="profile/edit" />
+          <Stack.Screen name="profile/stats" />
+          <Stack.Screen name="profile/goals" />
+          <Stack.Screen name="profile/collections" />
+          <Stack.Screen name="profile/help" />
+          <Stack.Screen name="profile/about" />
+          <Stack.Screen name="profile/terms" />
+          <Stack.Screen name="profile/privacy" />
+          <Stack.Screen name="admin/users" />
         </>
       )}
     </Stack>

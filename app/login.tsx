@@ -33,6 +33,7 @@ export default function Login() {
   
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [role, setRole] = useState<"mahasiswa" | "admin">("mahasiswa");
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
@@ -55,6 +56,7 @@ export default function Login() {
       const createdUser = await getOrCreateGoogleUser({
         email: email.toLowerCase(),
         name,
+        role,
         googleId: `manual-${email.toLowerCase()}-${Date.now()}`,
       });
       
@@ -163,6 +165,34 @@ export default function Login() {
             onChangeText={setName}
             autoCapitalize="words"
           />
+
+          <View style={styles.roleContainer}>
+            <Text style={[styles.roleLabel, { color: colors.text }]}>I am a:</Text>
+            <View style={styles.roleSelector}>
+              <TouchableOpacity
+                style={[
+                  styles.roleOption,
+                  { backgroundColor: role === "mahasiswa" ? colors.primary : colors.surface, borderColor: colors.border }
+                ]}
+                onPress={() => setRole("mahasiswa")}
+              >
+                <Text style={[styles.roleOptionText, { color: role === "mahasiswa" ? "#fff" : colors.text }]}>
+                  Mahasiswa
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.roleOption,
+                  { backgroundColor: role === "admin" ? colors.danger : colors.surface, borderColor: colors.border }
+                ]}
+                onPress={() => setRole("admin")}
+              >
+                <Text style={[styles.roleOptionText, { color: role === "admin" ? "#fff" : colors.text }]}>
+                  Admin
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           <TouchableOpacity
             style={[
@@ -297,6 +327,29 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     marginTop: 8,
+  },
+  roleContainer: {
+    marginBottom: 20,
+  },
+  roleLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  roleSelector: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  roleOption: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  roleOptionText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   loginButtonText: {
     color: "#fff",

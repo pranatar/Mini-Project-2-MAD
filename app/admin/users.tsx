@@ -201,15 +201,7 @@ function UserCard({
       </View>
       {!isCurrentUser && (
         <View style={styles.actions}>
-          {user.role === "mahasiswa" ? (
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.danger }]}
-              onPress={() => onRoleChange(user, "admin")}
-            >
-              <Ionicons name="shield-checkmark" size={20} color="#fff" />
-              <Text style={styles.actionButtonText}>Make Admin</Text>
-            </TouchableOpacity>
-          ) : (
+          {user.role === "admin" && (
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: colors.success }]}
               onPress={() => onRoleChange(user, "mahasiswa")}

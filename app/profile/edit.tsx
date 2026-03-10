@@ -1,22 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
-  TextInput,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
-  ActivityIndicator,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAuth } from "@/contexts/AuthContext";
 import useTheme from "@/hooks/useTheme";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function EditProfile() {
   const router = useRouter();
@@ -25,120 +23,122 @@ export default function EditProfile() {
   const updateUserProfile = useMutation(api.auth.updateUserProfile);
 
   const [name, setName] = useState(user?.name || "");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (user?.name) {
-      setName(user.name);
-    }
-  }, [user]);
+  const [email, setEmail] = useState(user?.email || "");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSave = async () => {
-    if (!name.trim()) {
-      Alert.alert("Error", "Name cannot be empty");
+    if (!name || !email) {
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
-    if (!user) return;
+    if (!user) {
+      Alert.alert("Error", "User not found");
+      return;
+    }
 
-    setIsSubmitting(true);
+    setIsLoading(true);
     try {
-      console.log("Saving profile changes for user:", user._id);
       await updateUserProfile({
         userId: user._id,
-        name: name.trim(),
+        name,
       });
-      console.log("Profile update successful!");
-      
-      if (Platform.OS === "web") {
-        alert("Changes Saved Successfully");
-        router.back();
-      } else {
-        Alert.alert("Success", "Changes Saved Successfully", [
-          { text: "OK", onPress: () => router.back() },
-        ]);
-      }
-    } catch (error: any) {
-      console.error("Failed to update profile:", error);
-      Alert.alert("Error", error?.message || "Failed to update profile. Please try again.");
+      Alert.alert("Success", "Profile updated successfully!");
+      router.back();
+    } catch (error) {
+      Alert.alert("Error", "Failed to update profile");
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
+  const initials = name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.bg }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
+    <ScrollView style={[styles.container, { backgroundColor: colors.bg }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Edit Profile
-        </Text>
-        <View style={styles.headerRight} />
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Edit Profile</Text>
+        <View style={styles.placeholder} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.formSection}>
-          <Text style={[styles.label, { color: colors.textMuted }]}>
-            FULL NAME
+      {/* Avatar */}
+      <View style={styles.avatarSection}>
+        <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+          <Text style={styles.avatarText}>{initials}</Text>
+        </View>
+        <TouchableOpacity style={styles.changeAvatarButton}>
+          <Ionicons name="camera" size={20} color={colors.primary} />
+          <Text style={[styles.changeAvatarText, { color: colors.primary }]}>
+            Change Photo
           </Text>
-          <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Ionicons name="person-outline" size={20} color={colors.primary} style={styles.inputIcon} />
-            <TextInput
-              style={[styles.input, { color: colors.text }]}
-              value={name}
-              onChangeText={setName}
-              placeholder="Enter your name"
-              placeholderTextColor={colors.textMuted}
-            />
-          </View>
-          <Text style={[styles.hint, { color: colors.textMuted }]}>
-            This name will be visible to other users and in your certificates.
-          </Text>
+        </TouchableOpacity>
+      </View>
 
-          <Text style={[styles.label, { color: colors.textMuted, marginTop: 20 }]}>
-            EMAIL ADDRESS
+      {/* Form */}
+      <View style={styles.form}>
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: colors.textMuted }]}>Full Name</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+            value={name}
+            onChangeText={setName}
+            placeholder="Enter your name"
+            placeholderTextColor={colors.textMuted}
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: colors.textMuted }]}>Email Address</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Enter your email"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            editable={false}
+          />
+          <Text style={[styles.hint, { color: colors.textMuted }]}>
+            Email cannot be changed
           </Text>
-          <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border, opacity: 0.6 }]}>
-            <Ionicons name="mail-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
-            <TextInput
-              style={[styles.input, { color: colors.text }]}
-              value={user?.email || ""}
-              editable={false}
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: colors.textMuted }]}>Role</Text>
+          <View style={[styles.roleBadge, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Ionicons 
+              name={user?.role === "admin" ? "shield-checkmark" : "person"} 
+              size={20} 
+              color={user?.role === "admin" ? colors.danger : colors.primary} 
             />
+            <Text style={[styles.roleText, { color: colors.text }]}>
+              {user?.role === "admin" ? "Administrator" : "Mahasiswa"}
+            </Text>
           </View>
-          <Text style={[styles.hint, { color: colors.warning }]}>
-            Email address cannot be changed.
-          </Text>
         </View>
 
         <TouchableOpacity
           style={[
             styles.saveButton,
-            { backgroundColor: isSubmitting ? colors.textMuted : colors.primary }
+            { 
+              backgroundColor: isLoading ? colors.textMuted : colors.primary,
+              opacity: isLoading ? 0.6 : 1
+            }
           ]}
           onPress={handleSave}
-          disabled={isSubmitting}
+          disabled={isLoading}
         >
-          {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle-outline" size={22} color="#fff" />
-              <Text style={styles.saveButtonText}>Save Changes</Text>
-            </>
-          )}
+          <Text style={styles.saveButtonText}>
+            {isLoading ? "Saving..." : "Save Changes"}
+          </Text>
         </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -150,67 +150,85 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   backButton: {
-    padding: 8,
+    padding: 4,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
   },
-  headerRight: {
-    width: 40,
+  placeholder: {
+    width: 32,
   },
-  scrollContent: {
-    padding: 20,
+  avatarSection: {
+    alignItems: "center",
+    paddingVertical: 30,
   },
-  formSection: {
-    marginBottom: 30,
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
   },
-  label: {
-    fontSize: 12,
-    fontWeight: "700",
-    marginBottom: 8,
-    marginLeft: 4,
+  avatarText: {
+    color: "#fff",
+    fontSize: 36,
+    fontWeight: "bold",
   },
-  inputContainer: {
+  changeAvatarButton: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    height: 56,
+    gap: 6,
   },
-  inputIcon: {
-    marginRight: 12,
+  changeAvatarText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  form: {
+    paddingHorizontal: 20,
+  },
+  field: {
+    marginBottom: 24,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
   },
   input: {
-    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
     fontSize: 16,
-    height: "100%",
   },
   hint: {
     fontSize: 12,
-    marginTop: 8,
-    marginLeft: 4,
-    lineHeight: 18,
+    marginTop: 6,
   },
-  saveButton: {
+  roleBadge: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    height: 56,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
     gap: 10,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+  },
+  roleText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  saveButton: {
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 12,
   },
   saveButtonText: {
     color: "#fff",
