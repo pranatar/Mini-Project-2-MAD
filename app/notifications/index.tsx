@@ -13,14 +13,13 @@ import { api } from "@/convex/_generated/api";
 import useTheme from "@/hooks/useTheme";
 import { LoadingView, EmptyState } from "@/components/States";
 import { Id } from "@/convex/_generated/dataModel";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Notifications() {
   const router = useRouter();
   const { colors } = useTheme();
   const [showOnlyUnread, setShowOnlyUnread] = useState(false);
-
-  // Placeholder user ID - in real app, get from auth context
-  const userId = "sample-user-id" as Id<"users">;
+  const { userId } = useAuth();
 
   const notifications = useQuery(
     api.notifications.getUserNotifications,
@@ -84,7 +83,16 @@ export default function Notifications() {
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Notifications</Text>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.title, { color: colors.text }]}>Notifications</Text>
+        </View>
+        
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={[styles.filterButton, showOnlyUnread && { backgroundColor: colors.primary }]}
@@ -173,12 +181,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 50,
     paddingBottom: 15,
   },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  backButton: {
+    padding: 4,
+    marginRight: 8,
+  },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
   },
   headerActions: {

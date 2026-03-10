@@ -13,19 +13,17 @@ import { api } from "@/convex/_generated/api";
 import useTheme from "@/hooks/useTheme";
 import { LoadingView } from "@/components/States";
 import { Id } from "@/convex/_generated/dataModel";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function BookDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors } = useTheme();
   const [isBorrowing, setIsBorrowing] = useState(false);
+  const { userId } = useAuth();
 
   // Get book details
   const book = useQuery(api.books.getBookById, id ? { bookId: id as Id<"books"> } : "skip");
-
-  // Check if user has borrowed this book
-  // Note: In a real app, you'd get the userId from auth context
-  const userId = "sample-user-id" as Id<"users">; // Placeholder
 
   const borrowBook = useMutation(api.borrowings.borrowBook);
   const addToFavorites = useMutation(api.favorites.addToFavorites);
@@ -33,7 +31,7 @@ export default function BookDetail() {
 
   const isFavorite = useQuery(
     api.favorites.isFavorite,
-    userId ? { userId, bookId: id as Id<"books"> } : "skip"
+    userId && id ? { userId, bookId: id as Id<"books"> } : "skip"
   );
 
   const handleBorrow = async () => {

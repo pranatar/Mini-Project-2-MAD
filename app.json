@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Exercise_MAD",
-    "slug": "Exercise_MAD",
+    "name": "perpustakaan-mad",
+    "slug": "perpustakaan-mad",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -38,7 +38,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

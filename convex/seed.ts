@@ -198,11 +198,22 @@ export const seedDatabase = mutation({
       bookIds.push(bookId);
     }
 
-    // Create a sample user
+    // Create sample users
+    const adminId = await ctx.db.insert("users", {
+      email: "admin@library.com",
+      name: "Admin User",
+      avatar: undefined,
+      role: "admin",
+      googleId: undefined,
+      createdAt: Date.now(),
+    });
+
     const userId = await ctx.db.insert("users", {
       email: "user@example.com",
       name: "John Doe",
       avatar: undefined,
+      role: "mahasiswa",
+      googleId: undefined,
       createdAt: Date.now(),
     });
 

@@ -8,7 +8,9 @@ export default defineSchema({
     name: v.string(),
     avatar: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_email", ["email"]),
+    role: v.union(v.literal("mahasiswa"), v.literal("admin")),
+    googleId: v.optional(v.string()),
+  }).index("by_email", ["email"]).index("by_google_id", ["googleId"]),
 
   // Books table
   books: defineTable({

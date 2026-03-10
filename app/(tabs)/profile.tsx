@@ -3,19 +3,21 @@ import React from "react";
 import {
   Dimensions,
   FlatList,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import useTheme from "@/hooks/useTheme";
 import { LoadingView } from "@/components/States";
-import { Id } from "@/convex/_generated/dataModel";
+import { useAuth } from "@/contexts/AuthContext";
 
 const { width } = Dimensions.get("window");
 
@@ -68,6 +70,18 @@ const menuItems = [
   },
 ];
 
+const adminMenuItems = [
+  {
+    id: "admin-1",
+    title: "User Management",
+    icon: "people-outline",
+    color: "#8b5cf6",
+    hasArrow: true,
+    route: "/admin/users" as any,
+    adminOnly: true,
+  },
+];
+
 const bottomMenuItems = [
   {
     id: "1",
@@ -90,18 +104,27 @@ const bottomMenuItems = [
 export default function Profile() {
   const router = useRouter();
   const { colors, toggleDarkMode, isDarkMode } = useTheme();
-
-  // Placeholder user ID - in real app, get from auth context
-  const userId = "sample-user-id" as Id<"users">;
+  const { user, signOut, isAdmin, loading, saveSession } = useAuth();
+  const updateUserRole = useMutation(api.auth.updateUserRole);
+  const [isSwitching, setIsSwitching] = React.useState(false);
 
   // Get user's borrowing stats
   const stats = useQuery(
     api.borrowings.getUserBorrowingStats,
-    userId ? { userId } : "skip"
+    user ? { userId: user._id } : "skip"
   );
 
-  const readingCount = stats?.reading || 0;
-  const finishedCount = stats?.finished || 0;
+  // Show loading while auth is loading
+  if (loading) {
+    return <LoadingView message="Loading profile..." />;
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    return (
+      <LoadingView message="Please login to view profile" />
+    );
+  }
 
   const renderMenuItem = ({ item }: { item: typeof menuItems[0] }) => (
     <TouchableOpacity
@@ -140,6 +163,39 @@ export default function Profile() {
   const renderBottomMenuItem = ({ item }: { item: typeof bottomMenuItems[0] }) => (
     <TouchableOpacity
       style={[styles.bottomMenuItem, { backgroundColor: colors.surface }]}
+      onPress={() => {
+        console.log("Bottom menu item pressed:", item.title);
+        if (item.title === "Sign Out") {
+          const performSignOut = async () => {
+            console.log("Confirmed: Performing sign out...");
+            try {
+              await signOut();
+              console.log("Sign out function completed.");
+            } catch (err) {
+              console.error("Sign out failed:", err);
+            }
+          };
+
+          if (Platform.OS === "web") {
+            if (window.confirm("Are you sure you want to sign out?")) {
+              performSignOut();
+            }
+          } else {
+            Alert.alert(
+              "Sign Out",
+              "Are you sure you want to sign out?",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Sign Out",
+                  style: "destructive",
+                  onPress: performSignOut,
+                },
+              ]
+            );
+          }
+        }
+      }}
     >
       <Ionicons
         name={item.icon as any}
@@ -158,9 +214,14 @@ export default function Profile() {
     </TouchableOpacity>
   );
 
-  if (!stats) {
-    return <LoadingView message="Loading profile..." />;
-  }
+  const displayName = user?.name || "User";
+  const displayEmail = user?.email || "";
+  const initials = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+
+  // Stats might be undefined initially, use default values
+  const statsData = stats || { reading: 0, finished: 0, overdue: 0, total: 0 };
+  const readingCount = statsData.reading || 0;
+  const finishedCount = statsData.finished || 0;
 
   return (
     <ScrollView
@@ -169,19 +230,53 @@ export default function Profile() {
     >
       {/* Profile Header */}
       <View style={[styles.profileHeader, { backgroundColor: colors.surface }]}>
-        <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}>
-          <Text style={styles.avatarText}>JD</Text>
+        <View style={styles.headerTop}>
+          <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+          <View style={styles.headerInfo}>
+            <Text style={[styles.userName, { color: colors.text }]}>
+              {displayName}
+            </Text>
+            <Text style={[styles.userEmail, { color: colors.textMuted }]}>
+              {displayEmail}
+            </Text>
+            <View style={[styles.roleBadge, { backgroundColor: isAdmin ? colors.danger : colors.primary }]}>
+              <Text style={styles.roleText}>
+                {isAdmin ? "Admin" : "User"}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity 
+            style={[styles.editCircleButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => router.push("/profile/edit")}
+          >
+            <Ionicons name="pencil" size={18} color={colors.primary} />
+          </TouchableOpacity>
         </View>
-        <Text style={[styles.userName, { color: colors.text }]}>
-          John Doe
-        </Text>
-        <Text style={[styles.userEmail, { color: colors.textMuted }]}>
-          john.doe@email.com
-        </Text>
-        <TouchableOpacity
-          style={[styles.editProfileButton, { backgroundColor: colors.primary }]}
+        
+        {/* Debug Role Switcher */}
+        <TouchableOpacity 
+          style={[styles.switchRoleButton, { borderColor: colors.border }]}
+          disabled={isSwitching}
+          onPress={async () => {
+            if (!user) return;
+            setIsSwitching(true);
+            try {
+              const newRole = isAdmin ? "mahasiswa" : "admin";
+              await updateUserRole({ userId: user._id, role: newRole });
+              // The useAuth hook will automatically pick up the change from Convex query
+            } catch (error) {
+              Alert.alert("Error", "Failed to switch role");
+            } finally {
+              setIsSwitching(false);
+            }
+          }}
         >
-          <Text style={styles.editProfileText}>Edit Profile</Text>
+          <Ionicons name="swap-horizontal-outline" size={16} color={colors.primary} />
+          <Text style={[styles.switchRoleText, { color: colors.primary }]}>
+            {isSwitching ? "Switching..." : `Switch to ${isAdmin ? "User" : "Admin"}`}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -208,7 +303,7 @@ export default function Profile() {
         <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
           <Ionicons name="star-outline" size={24} color={colors.warning} />
           <Text style={[styles.statValue, { color: colors.text }]}>
-            {stats.total}
+            {statsData.total}
           </Text>
           <Text style={[styles.statLabel, { color: colors.textMuted }]}>
             Total
@@ -228,6 +323,21 @@ export default function Profile() {
           scrollEnabled={false}
         />
       </View>
+
+      {/* Admin Menu */}
+      {isAdmin && (
+        <View style={styles.menuSection}>
+          <Text style={[styles.sectionTitle, { color: colors.danger }]}>
+            ADMIN
+          </Text>
+          <FlatList
+            data={adminMenuItems}
+            renderItem={renderMenuItem}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+          />
+        </View>
+      )}
 
       {/* Bottom Menu */}
       <View style={[styles.menuSection, styles.lastSection]}>
@@ -278,17 +388,56 @@ const styles = StyleSheet.create({
   },
   userEmail: {
     fontSize: 14,
-    marginBottom: 15,
   },
-  editProfileButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 20,
+  roleBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    marginTop: 8,
   },
-  editProfileText: {
+  roleText: {
     color: "#fff",
+    fontSize: 12,
     fontWeight: "600",
-    fontSize: 14,
+  },
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+  },
+  headerInfo: {
+    flex: 1,
+    marginLeft: 20,
+  },
+  editCircleButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  switchRoleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginTop: 20,
+    gap: 8,
+    alignSelf: "center",
+  },
+  switchRoleText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   statsContainer: {
     flexDirection: "row",

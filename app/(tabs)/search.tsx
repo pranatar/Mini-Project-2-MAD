@@ -27,8 +27,11 @@ export default function Search() {
 
   const categories = useQuery(api.books.getCategories) ?? [];
 
-  // Add "All" category at the beginning
-  const allCategories = useMemo(() => ["All", ...categories], [categories]);
+  // Add "All" category at the beginning - safe to use categories directly since useQuery returns stable array
+  const allCategories = useMemo(() => {
+    const cats = Array.isArray(categories) ? categories : [];
+    return ["All", ...cats];
+  }, [categories]);
 
   const handleBookPress = (bookId: Id<"books">) => {
     console.log("Book pressed:", bookId);

@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as auth from "../auth.js";
 import type * as books from "../books.js";
 import type * as borrowings from "../borrowings.js";
 import type * as favorites from "../favorites.js";
@@ -24,6 +25,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  auth: typeof auth;
   books: typeof books;
   borrowings: typeof borrowings;
   favorites: typeof favorites;

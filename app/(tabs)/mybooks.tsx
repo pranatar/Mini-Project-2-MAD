@@ -14,6 +14,7 @@ import { api } from "@/convex/_generated/api";
 import useTheme from "@/hooks/useTheme";
 import { LoadingView, EmptyState } from "@/components/States";
 import { Id } from "@/convex/_generated/dataModel";
+import { useAuth } from "@/contexts/AuthContext";
 
 const { width } = Dimensions.get("window");
 
@@ -27,9 +28,7 @@ export default function MyBooks() {
   const router = useRouter();
   const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState("1");
-
-  // Placeholder user ID - in real app, get from auth context
-  const userId = "sample-user-id" as Id<"users">;
+  const { userId, loading: userLoading } = useAuth();
 
   // Fetch user's borrowings
   const borrowings = useQuery(
@@ -76,7 +75,7 @@ export default function MyBooks() {
     favorites: favoriteBooks.length,
   };
 
-  if (!borrowings || !favorites || !readingProgress) {
+  if (userLoading || !borrowings || !favorites || !readingProgress) {
     return <LoadingView message="Loading your books..." />;
   }
 

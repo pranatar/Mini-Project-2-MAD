@@ -2,16 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import useTheme from "@/hooks/useTheme";
+import { Doc } from "@/convex/_generated/dataModel";
 
-interface Book {
-  id: string;
-  title: string;
-  author: string;
-  coverImage: string;
-  category: string;
-  rating: number;
-  availableCopies?: number;
-}
+type Book = Doc<"books">;
 
 interface BookCardProps {
   book: Book;
