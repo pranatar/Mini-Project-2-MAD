@@ -57,6 +57,7 @@ export default function MyBooks() {
   const returnBook = useMutation(api.borrowings.returnBook);
   const cancelReservation = useMutation(api.borrowings.cancelReservation);
   const confirmPickup = useMutation(api.borrowings.confirmPickup);
+  const deleteBorrowing = useMutation(api.borrowings.deleteBorrowing);
 
   const handleReturn = async (borrowingId: Id<"borrowings">) => {
     try {
@@ -96,6 +97,28 @@ export default function MyBooks() {
     } catch (error: any) {
       alert(error.message || "Failed to confirm pickup");
     }
+  };
+
+  const handleDeleteFromHistory = async (borrowingId: Id<"borrowings">, bookTitle: string) => {
+    Alert.alert(
+      "Remove from History",
+      `Remove "${bookTitle}" from your borrowing history?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteBorrowing({ borrowingId });
+              alert("Book removed from history!");
+            } catch (error: any) {
+              alert(error.message || "Failed to remove from history");
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleBookPress = (bookId: Id<"books">) => {
@@ -277,6 +300,12 @@ export default function MyBooks() {
                     Returned: {item.returnDate ? new Date(item.returnDate).toLocaleDateString() : "N/A"}
                   </Text>
                 </View>
+                <TouchableOpacity
+                  style={[styles.deleteButton, { backgroundColor: colors.danger }]}
+                  onPress={() => handleDeleteFromHistory(item._id, item.book.title)}
+                >
+                  <Ionicons name="trash-outline" size={18} color="#fff" />
+                </TouchableOpacity>
               </TouchableOpacity>
             )}
             keyExtractor={(item) => item._id}
@@ -475,6 +504,14 @@ const styles = StyleSheet.create({
   overdueText: {
     fontSize: 10,
     fontWeight: "bold",
+  },
+  deleteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
   },
   reservedActions: {
     flexDirection: "row",

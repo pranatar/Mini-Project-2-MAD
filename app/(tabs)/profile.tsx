@@ -100,11 +100,14 @@ export default function Profile() {
   const { colors, toggleDarkMode, isDarkMode } = useTheme();
   const { user, signOut, isAdmin, loading, saveSession } = useAuth();
 
-  // Get user's borrowing stats
+  // Get user's borrowing stats - ALWAYS call hooks first
   const stats = useQuery(
     api.borrowings.getUserBorrowingStats,
     user ? { userId: user._id } : "skip"
   );
+
+  // Admin stats - ALWAYS call this hook (cannot be conditional)
+  const adminStatsQuery = useQuery(api.admin.getStats);
 
   // Show loading while auth is loading
   if (loading) {
@@ -217,6 +220,11 @@ export default function Profile() {
   const readingCount = statsData.reading || 0;
   const finishedCount = statsData.finished || 0;
 
+  // Admin stats (use the query result from top of component)
+  const totalBooks = adminStatsQuery?.totalBooks || 0;
+  const totalUsers = adminStatsQuery?.totalUsers || 0;
+  const overdueBooks = adminStatsQuery?.overdueBorrowings || 0;
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.bg }]}
@@ -256,33 +264,69 @@ export default function Profile() {
 
       {/* Stats */}
       <View style={styles.statsContainer}>
-        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-          <Ionicons name="book-outline" size={24} color={colors.primary} />
-          <Text style={[styles.statValue, { color: colors.text }]}>
-            {readingCount}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.textMuted }]}>
-            Reading
-          </Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-          <Ionicons name="checkmark-circle-outline" size={24} color={colors.success} />
-          <Text style={[styles.statValue, { color: colors.text }]}>
-            {finishedCount}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.textMuted }]}>
-            Finished
-          </Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-          <Ionicons name="star-outline" size={24} color={colors.warning} />
-          <Text style={[styles.statValue, { color: colors.text }]}>
-            {statsData.total}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.textMuted }]}>
-            Total
-          </Text>
-        </View>
+        {isAdmin ? (
+          // Admin Stats
+          <>
+            <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+              <Ionicons name="library" size={24} color={colors.primary} />
+              <Text style={[styles.statValue, { color: colors.text }]}>
+                {totalBooks}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+                Total Books
+              </Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+              <Ionicons name="people" size={24} color={colors.success} />
+              <Text style={[styles.statValue, { color: colors.text }]}>
+                {totalUsers}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+                Total Users
+              </Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+              <Ionicons name="time" size={24} color={colors.danger} />
+              <Text style={[styles.statValue, { color: colors.text }]}>
+                {overdueBooks}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+                Overdue
+              </Text>
+            </View>
+          </>
+        ) : (
+          // User Stats
+          <>
+            <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+              <Ionicons name="book-outline" size={24} color={colors.primary} />
+              <Text style={[styles.statValue, { color: colors.text }]}>
+                {readingCount}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+                Reading
+              </Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+              <Ionicons name="checkmark-circle-outline" size={24} color={colors.success} />
+              <Text style={[styles.statValue, { color: colors.text }]}>
+                {finishedCount}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+                Finished
+              </Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+              <Ionicons name="star-outline" size={24} color={colors.warning} />
+              <Text style={[styles.statValue, { color: colors.text }]}>
+                {statsData.total}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+                Total
+              </Text>
+            </View>
+          </>
+        )}
       </View>
 
       {/* Menu Items */}

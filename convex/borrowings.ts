@@ -259,6 +259,23 @@ export const returnBook = mutation({
   },
 });
 
+// Delete a borrowing record (for user to clean history)
+export const deleteBorrowing = mutation({
+  args: { borrowingId: v.id("borrowings") },
+  handler: async (ctx, args) => {
+    const borrowing = await ctx.db.get(args.borrowingId);
+    if (!borrowing) throw new Error("Borrowing not found");
+    if (borrowing.status !== "returned") {
+      throw new Error("Can only delete returned books from history");
+    }
+
+    // Delete the borrowing record
+    await ctx.db.delete(args.borrowingId);
+
+    return { success: true };
+  },
+});
+
 // Extend borrowing period
 export const extendBorrowing = mutation({
   args: { borrowingId: v.id("borrowings") },
