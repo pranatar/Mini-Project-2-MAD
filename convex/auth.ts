@@ -54,7 +54,15 @@ export const getOrCreateGoogleUser = mutation({
 export const getUserById = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.userId);
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+    
+    let avatarUrl = user.avatar;
+    if (user.avatar && !user.avatar.startsWith("http")) {
+      avatarUrl = (await ctx.storage.getUrl(user.avatar)) ?? undefined;
+    }
+    
+    return { ...user, avatar: avatarUrl };
   },
 });
 
@@ -62,10 +70,19 @@ export const getUserById = query({
 export const getUserByEmail = query({
   args: { email: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const user = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .first();
+    
+    if (!user) return null;
+
+    let avatarUrl = user.avatar;
+    if (user.avatar && !user.avatar.startsWith("http")) {
+      avatarUrl = (await ctx.storage.getUrl(user.avatar)) ?? undefined;
+    }
+    
+    return { ...user, avatar: avatarUrl };
   },
 });
 
@@ -101,6 +118,11 @@ export const updateUserRole = mutation({
       throw new Error("Mahasiswa accounts cannot be promoted to admin. Please create a new account.");
     }
 
+    // Block downgrading from admin to mahasiswa
+    if (user.role === "admin" && args.role === "mahasiswa") {
+      throw new Error("Admin accounts cannot be downgraded to mahasiswa.");
+    }
+
     await ctx.db.patch(args.userId, { role: args.role });
     return await ctx.db.get(args.userId);
   },
@@ -109,7 +131,17 @@ export const updateUserRole = mutation({
 // Get all users (admin only)
 export const getAllUsers = query({
   handler: async (ctx) => {
-    return await ctx.db.query("users").order("desc").collect();
+    const users = await ctx.db.query("users").order("desc").collect();
+    
+    return Promise.all(
+      users.map(async (user) => {
+        let avatarUrl = user.avatar;
+        if (user.avatar && !user.avatar.startsWith("http")) {
+          avatarUrl = (await ctx.storage.getUrl(user.avatar)) ?? undefined;
+        }
+        return { ...user, avatar: avatarUrl };
+      })
+    );
   },
 });
 
@@ -117,6 +149,14 @@ export const getAllUsers = query({
 export const getCurrentUser = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.userId);
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+
+    let avatarUrl = user.avatar;
+    if (user.avatar && !user.avatar.startsWith("http")) {
+      avatarUrl = (await ctx.storage.getUrl(user.avatar)) ?? undefined;
+    }
+    
+    return { ...user, avatar: avatarUrl };
   },
 });

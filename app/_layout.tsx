@@ -32,9 +32,18 @@ function RootLayoutContent() {
     if (!user && isProtected) {
       console.log("Redirecting to /login (Account needed)");
       router.replace("/login");
-    } else if (user && rootSegment === "login") {
-      console.log("Redirecting to /(tabs) (Already logged in)");
-      router.replace("/(tabs)");
+    } else if (user && (rootSegment === "login" || rootSegment === "" || rootSegment === "(tabs)")) {
+      if (user.role === "admin") {
+        const isHeadingToProfile = segments.some(s => s === "profile");
+        // Redirect to admin dashboard ONLY if not going to profile
+        if (!isHeadingToProfile) {
+          console.log("Redirecting Admin to /admin/dashboard");
+          router.replace("/admin/dashboard");
+        }
+      } else if (rootSegment === "login") {
+        console.log("Redirecting User to /(tabs)");
+        router.replace("/(tabs)");
+      }
     }
   }, [user, loading, segments]);
 
@@ -61,7 +70,8 @@ function RootLayoutContent() {
           <Stack.Screen name="profile/about" />
           <Stack.Screen name="profile/terms" />
           <Stack.Screen name="profile/privacy" />
-          <Stack.Screen name="admin/users" />
+          <Stack.Screen name="library-map" />
+          <Stack.Screen name="admin" />
         </>
       )}
     </Stack>

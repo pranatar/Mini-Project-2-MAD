@@ -19,6 +19,7 @@ export default defineSchema({
     description: v.string(),
     coverImage: v.string(),
     category: v.string(),
+    faculty: v.string(),
     isbn: v.string(),
     publisher: v.string(),
     publishedYear: v.number(),
@@ -29,11 +30,18 @@ export default defineSchema({
     availableCopies: v.number(),
     totalCopies: v.number(),
     isEbook: v.boolean(),
+    shelfLocation: v.optional(v.string()),
+    floor: v.optional(v.string()),
+    section: v.optional(v.string()),
+    isReserved: v.optional(v.boolean()),
+    reservedBy: v.optional(v.id("users")),
+    reservedUntil: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index("by_category", ["category"])
     .index("by_author", ["author"])
-    .index("by_title", ["title"]),
+    .index("by_title", ["title"])
+    .index("by_faculty", ["faculty"]),
 
   // Borrowings table (peminjaman)
   borrowings: defineTable({
@@ -45,7 +53,8 @@ export default defineSchema({
     status: v.union(
       v.literal("borrowed"),
       v.literal("returned"),
-      v.literal("overdue")
+      v.literal("overdue"),
+      v.literal("reserved")
     ),
     extensionCount: v.number(),
   })

@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
   Alert,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
@@ -73,18 +74,6 @@ const menuItems = [
   },
 ];
 
-const adminMenuItems = [
-  {
-    id: "admin-1",
-    title: "User Management",
-    icon: "people-outline",
-    color: "#8b5cf6",
-    hasArrow: true,
-    route: "/admin/users" as any,
-    adminOnly: true,
-  },
-];
-
 const bottomMenuItems = [
   {
     id: "1",
@@ -110,8 +99,6 @@ export default function Profile() {
   const router = useRouter();
   const { colors, toggleDarkMode, isDarkMode } = useTheme();
   const { user, signOut, isAdmin, loading, saveSession } = useAuth();
-  const updateUserRole = useMutation(api.auth.updateUserRole);
-  const [isSwitching, setIsSwitching] = React.useState(false);
 
   // Get user's borrowing stats
   const stats = useQuery(
@@ -239,7 +226,11 @@ export default function Profile() {
       <View style={[styles.profileHeader, { backgroundColor: colors.surface }]}>
         <View style={styles.headerTop}>
           <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}>
-            <Text style={styles.avatarText}>{initials}</Text>
+            {user?.avatar ? (
+              <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>{initials}</Text>
+            )}
           </View>
           <View style={styles.headerInfo}>
             <Text style={[styles.userName, { color: colors.text }]}>
@@ -261,30 +252,6 @@ export default function Profile() {
             <Ionicons name="pencil" size={18} color={colors.primary} />
           </TouchableOpacity>
         </View>
-        
-        {/* Debug Role Switcher */}
-        <TouchableOpacity 
-          style={[styles.switchRoleButton, { borderColor: colors.border }]}
-          disabled={isSwitching}
-          onPress={async () => {
-            if (!user) return;
-            setIsSwitching(true);
-            try {
-              const newRole = isAdmin ? "mahasiswa" : "admin";
-              await updateUserRole({ userId: user._id, role: newRole });
-              // The useAuth hook will automatically pick up the change from Convex query
-            } catch (error) {
-              Alert.alert("Error", "Failed to switch role");
-            } finally {
-              setIsSwitching(false);
-            }
-          }}
-        >
-          <Ionicons name="swap-horizontal-outline" size={16} color={colors.primary} />
-          <Text style={[styles.switchRoleText, { color: colors.primary }]}>
-            {isSwitching ? "Switching..." : `Switch to ${isAdmin ? "User" : "Admin"}`}
-          </Text>
-        </TouchableOpacity>
       </View>
 
       {/* Stats */}
@@ -324,27 +291,17 @@ export default function Profile() {
           ACCOUNT
         </Text>
         <FlatList
-          data={menuItems}
+          data={isAdmin 
+            ? menuItems.filter(item => !["2", "3", "4"].includes(item.id)) 
+            : menuItems
+          }
           renderItem={renderMenuItem}
           keyExtractor={(item) => item.id}
           scrollEnabled={false}
         />
       </View>
 
-      {/* Admin Menu */}
-      {isAdmin && (
-        <View style={styles.menuSection}>
-          <Text style={[styles.sectionTitle, { color: colors.danger }]}>
-            ADMIN
-          </Text>
-          <FlatList
-            data={adminMenuItems}
-            renderItem={renderMenuItem}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-          />
-        </View>
-      )}
+      {/* Admin Menu removed as per user request - Redundant with new Admin Navigation */}
 
       {/* Bottom Menu */}
       <View style={[styles.menuSection, styles.lastSection]}>
@@ -387,6 +344,11 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "bold",
     color: "#fff",
+  },
+  avatarImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
   },
   userName: {
     fontSize: 22,

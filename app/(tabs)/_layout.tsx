@@ -1,9 +1,23 @@
 import useTheme from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { View, StyleSheet } from "react-native";
+
+function NotificationBadge({ count }: { count: number }) {
+  return (
+    <View style={styles.badge}>
+      <View style={styles.badgeDot} />
+    </View>
+  );
+}
 
 export default function TabLayout() {
   const { colors } = useTheme();
+  const { userId } = useAuth();
+  const unreadCount = useQuery(api.notifications.getUnreadCount, userId ? { userId } : "skip");
 
   return (
     <Tabs
@@ -26,6 +40,9 @@ export default function TabLayout() {
         },
         headerTintColor: colors.text,
         headerShadowVisible: false,
+        tabBarIconStyle: {
+          position: "relative",
+        },
       }}
     >
       <Tabs.Screen
@@ -34,18 +51,10 @@ export default function TabLayout() {
           title: "Home",
           headerTitle: "Digital Library",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: "Categories",
-          headerTitle: "Browse Categories",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search" size={size} color={color} />
+            <View style={styles.iconContainer}>
+              <Ionicons name="home" size={size} color={color} />
+              {unreadCount && unreadCount > 0 && <NotificationBadge count={unreadCount} />}
+            </View>
           ),
         }}
       />
@@ -53,8 +62,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="ebooks"
         options={{
-          title: "E-Library",
-          headerTitle: "E-Library",
+          title: "Browse",
+          headerTitle: "Browse Books",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="library" size={size} color={color} />
           ),
@@ -85,3 +94,24 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  iconContainer: {
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#ef4444",
+  },
+  badgeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#ef4444",
+  },
+});

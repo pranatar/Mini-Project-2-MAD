@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -8,23 +8,94 @@ import {
   Alert,
   ScrollView,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import useTheme from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import * as ImagePicker from "expo-image-picker";
 
 export default function EditProfile() {
   const router = useRouter();
   const { colors } = useTheme();
   const { user } = useAuth();
   const updateUserProfile = useMutation(api.auth.updateUserProfile);
-
+  const generateUploadUrl = useMutation(api.uploads.generateUploadUrl);
+  
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatar || null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Sync with user data if it changes
+  useEffect(() => {
+    if (user) {
+      setName(user.name);
+      setEmail(user.email);
+      setAvatarUrl(user.avatar || null);
+    }
+  }, [user]);
+
+  const pickImage = async () => {
+    // Request permission
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Denied", "Sorry, we need camera roll permissions to make this work!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      handleUpload(result.assets[0].uri);
+    }
+  };
+
+  const handleUpload = async (uri: string) => {
+    if (!user) return;
+    setIsUploading(true);
+
+    try {
+      // 1. Get a short-lived upload URL
+      const postUrl = await generateUploadUrl();
+
+      // 2. Convert URI to blob
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      // 3. Post the file to the upload URL
+      const result = await fetch(postUrl, {
+        method: "POST",
+        headers: { "Content-Type": blob.type },
+        body: blob,
+      });
+
+      const { storageId } = await result.json();
+
+      // 4. Update the user profile with the storage ID
+      // Convex will automatically serve the URL for this storage ID
+      await updateUserProfile({
+        userId: user._id,
+        avatar: storageId,
+      });
+
+      Alert.alert("Success", "Profile photo updated!");
+    } catch (error) {
+      console.error("Upload error:", error);
+      Alert.alert("Error", "Failed to upload image");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!name || !email) {
@@ -43,7 +114,7 @@ export default function EditProfile() {
         userId: user._id,
         name,
       });
-      Alert.alert("Success", "Profile updated successfully!");
+      Alert.alert("Success", "Profile details updated!");
       router.back();
     } catch (error) {
       Alert.alert("Error", "Failed to update profile");
@@ -68,12 +139,22 @@ export default function EditProfile() {
       {/* Avatar */}
       <View style={styles.avatarSection}>
         <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-          <Text style={styles.avatarText}>{initials}</Text>
+          {isUploading ? (
+            <ActivityIndicator color="#fff" />
+          ) : avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+          ) : (
+            <Text style={styles.avatarText}>{initials}</Text>
+          )}
         </View>
-        <TouchableOpacity style={styles.changeAvatarButton}>
+        <TouchableOpacity 
+          style={styles.changeAvatarButton} 
+          onPress={pickImage}
+          disabled={isUploading}
+        >
           <Ionicons name="camera" size={20} color={colors.primary} />
           <Text style={[styles.changeAvatarText, { color: colors.primary }]}>
-            Change Photo
+            {isUploading ? "Uploading..." : "Change Photo"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -179,6 +260,11 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 36,
     fontWeight: "bold",
+  },
+  avatarImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
   },
   changeAvatarButton: {
     flexDirection: "row",

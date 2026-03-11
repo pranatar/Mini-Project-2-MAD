@@ -89,13 +89,7 @@ export default function AdminUsers() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>User Management</Text>
-        <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
-          {users.length} total users
-        </Text>
-      </View>
+      {/* Header handled by Tabs */}
 
       {/* Role Filter */}
       <View style={styles.filterContainer}>
@@ -201,15 +195,7 @@ function UserCard({
       </View>
       {!isCurrentUser && (
         <View style={styles.actions}>
-          {user.role === "admin" && (
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.success }]}
-              onPress={() => onRoleChange(user, "mahasiswa")}
-            >
-              <Ionicons name="person" size={20} color="#fff" />
-              <Text style={styles.actionButtonText}>Make Mahasiswa</Text>
-            </TouchableOpacity>
-          )}
+          {/* Action buttons removed as per user request to prevent role downgrading */}
         </View>
       )}
       {isCurrentUser && (
@@ -257,8 +243,20 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 60,
     paddingBottom: 15,
+  },
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  headerBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 24,
@@ -266,7 +264,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    marginTop: 4,
+    marginTop: 2,
   },
   filterContainer: {
     flexDirection: "row",

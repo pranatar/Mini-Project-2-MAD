@@ -6,9 +6,13 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
+  TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useMutation } from "convex/react";
+import { useEffect } from "react";
 import { api } from "@/convex/_generated/api";
 import useTheme from "@/hooks/useTheme";
 import { LoadingView } from "@/components/States";
@@ -22,12 +26,14 @@ export default function BookDetail() {
   const [isBorrowing, setIsBorrowing] = useState(false);
   const { userId } = useAuth();
 
-  // Get book details
   const book = useQuery(api.books.getBookById, id ? { bookId: id as Id<"books"> } : "skip");
 
   const borrowBook = useMutation(api.borrowings.borrowBook);
+  const reserveForPickup = useMutation(api.borrowings.reserveForPickup);
   const addToFavorites = useMutation(api.favorites.addToFavorites);
   const removeFromFavorites = useMutation(api.favorites.removeFromFavorites);
+
+  const [isReserving, setIsReserving] = useState(false);
 
   const isFavorite = useQuery(
     api.favorites.isFavorite,
@@ -40,11 +46,43 @@ export default function BookDetail() {
     setIsBorrowing(true);
     try {
       await borrowBook({ userId, bookId: book._id });
-      alert("Book borrowed successfully!");
+      Alert.alert(
+        "Success! 📚",
+        `Book borrowed! Please pick up at:\n${book.floor}, ${book.section}, Shelf ${book.shelfLocation}\n\nDue date: 14 days from today`
+      );
     } catch (error: any) {
-      alert(error.message || "Failed to borrow book");
+      Alert.alert("Error", error.message || "Failed to borrow book");
     } finally {
       setIsBorrowing(false);
+    }
+  };
+
+  const handleReserve = async () => {
+    if (!book || !userId) return;
+
+    setIsReserving(true);
+    try {
+      await reserveForPickup({ userId, bookId: book._id });
+      Alert.alert(
+        "Reserved! ✅",
+        `Book reserved for 48 hours!\n\nPick up at:\n${book.floor}, ${book.section}, Shelf ${book.shelfLocation}\n\nShow this confirmation at the pickup counter.`
+      );
+    } catch (error: any) {
+      console.error("Reserve error:", error);
+      
+      // Handle specific error messages
+      let errorMessage = "Failed to reserve book";
+      if (error.message.includes("already reserved")) {
+        errorMessage = "❌ This book is already reserved by another user.\n\nPlease choose a different book or try again later.";
+      } else if (error.message.includes("not available")) {
+        errorMessage = "❌ This book is currently not available.\n\nAll copies are borrowed or reserved.";
+      } else if (error.message.includes("already have a reservation")) {
+        errorMessage = "ℹ️ You already have a reservation for this book.\n\nCheck My Books → Reserved tab.";
+      }
+      
+      Alert.alert("Reservation Failed", errorMessage);
+    } finally {
+      setIsReserving(false);
     }
   };
 
@@ -54,11 +92,13 @@ export default function BookDetail() {
     try {
       if (isFavorite) {
         await removeFromFavorites({ userId, bookId: book._id });
+        Alert.alert("Success", "Removed from favorites");
       } else {
         await addToFavorites({ userId, bookId: book._id });
+        Alert.alert("Success", "Added to favorites");
       }
     } catch (error: any) {
-      alert(error.message || "Failed to update favorites");
+      Alert.alert("Error", error.message || "Failed to update favorites");
     }
   };
 
@@ -110,6 +150,36 @@ export default function BookDetail() {
         <Text style={[styles.title, { color: colors.text }]}>{book.title}</Text>
         <Text style={[styles.author, { color: colors.textMuted }]}>by {book.author}</Text>
 
+        {/* Shelf Location - For Physical Library */}
+        {book.floor && book.section && book.shelfLocation && (
+          <View style={[styles.shelfLocationCard, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+            <View style={styles.shelfHeader}>
+              <Ionicons name="location" size={20} color={colors.primary} />
+              <Text style={[styles.shelfTitle, { color: colors.text }]}>Find in Library</Text>
+            </View>
+            <View style={styles.shelfDetails}>
+              <View style={styles.shelfRow}>
+                <Ionicons name="layers" size={16} color={colors.textMuted} />
+                <Text style={[styles.shelfText, { color: colors.text }]}>{book.floor}</Text>
+              </View>
+              <View style={styles.shelfRow}>
+                <Ionicons name="grid" size={16} color={colors.textMuted} />
+                <Text style={[styles.shelfText, { color: colors.text }]}>{book.section}</Text>
+              </View>
+              <View style={styles.shelfRow}>
+                <Ionicons name="bookmark" size={16} color={colors.textMuted} />
+                <Text style={[styles.shelfText, { color: colors.text }]}>Shelf {book.shelfLocation}</Text>
+              </View>
+            </View>
+            <View style={[styles.shelfNote, { backgroundColor: `${colors.primary}10` }]}>
+              <Ionicons name="information-circle" size={14} color={colors.primary} />
+              <Text style={[styles.shelfNoteText, { color: colors.primary }]}>
+                Visit the library to access this book
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Availability */}
         <View
           style={[
@@ -140,35 +210,44 @@ export default function BookDetail() {
       {/* Action Buttons */}
       <View style={styles.actionsSection}>
         {isAvailable ? (
-          <TouchableOpacity
-            style={[styles.borrowButton, { backgroundColor: colors.primary }]}
-            onPress={handleBorrow}
-            disabled={isBorrowing}
-          >
-            <Ionicons name="book-outline" size={20} color="#fff" />
-            <Text style={styles.borrowButtonText}>
-              {isBorrowing ? "Borrowing..." : "Borrow Book"}
-            </Text>
-          </TouchableOpacity>
+          book.isReserved ? (
+            // Book is reserved by someone else
+            <TouchableOpacity
+              style={[styles.reserveButton, { backgroundColor: colors.border }]}
+              disabled
+            >
+              <Ionicons name="lock-closed" size={20} color={colors.textMuted} />
+              <Text style={[styles.reserveButtonText, { color: colors.textMuted }]}>
+                Reserved by Others
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            // Book available for reservation
+            <TouchableOpacity
+              style={[styles.reserveButton, { backgroundColor: colors.primary }]}
+              onPress={handleReserve}
+              disabled={isReserving}
+            >
+              {isReserving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="bookmark" size={20} color="#fff" />
+              )}
+              <Text style={styles.reserveButtonText}>
+                {isReserving ? "Reserving..." : "Reserve for Pickup"}
+              </Text>
+            </TouchableOpacity>
+          )
         ) : (
           <TouchableOpacity
-            style={[styles.borrowButton, { backgroundColor: colors.border }]}
+            style={[styles.reserveButton, { backgroundColor: colors.border }]}
             disabled
           >
-            <Text style={[styles.borrowButtonText, { color: colors.textMuted }]}>
+            <Text style={[styles.reserveButtonText, { color: colors.textMuted }]}>
               Not Available
             </Text>
           </TouchableOpacity>
         )}
-
-        <TouchableOpacity
-          style={[styles.readButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        >
-          <Ionicons name="eye-outline" size={20} color={colors.primary} />
-          <Text style={[styles.readButtonText, { color: colors.primary }]}>
-            Preview
-          </Text>
-        </TouchableOpacity>
       </View>
 
       {/* Book Details */}
@@ -318,8 +397,22 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     gap: 12,
   },
+  reserveButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  reserveButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
   borrowButton: {
-    flex: 2,
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -329,7 +422,7 @@ const styles = StyleSheet.create({
   },
   borrowButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
   },
   readButton: {
@@ -392,4 +485,115 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
   },
+  // Shelf Location Styles
+  shelfLocationCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 12,
+  },
+  shelfHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  shelfTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  shelfDetails: {
+    marginBottom: 12,
+  },
+  shelfRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  shelfText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  shelfNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  shelfNoteText: {
+    fontSize: 12,
+    fontWeight: "500",
+    flex: 1,
+  },
+  // Progress Styles
+  progressSection: {
+    margin: 20,
+    marginBottom: 0,
+    padding: 20,
+    borderRadius: 16,
+  },
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  percentageText: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  progressBarLarge: {
+    height: 10,
+    borderRadius: 5,
+    overflow: "hidden",
+    marginBottom: 20,
+  },
+  progressFillLarge: {
+    height: 10,
+    borderRadius: 5,
+  },
+  updateRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 12,
+  },
+  inputContainer: {
+    flex: 1,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 6,
+  },
+  pageInput: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  pageDivider: {
+    fontSize: 15,
+    fontWeight: "500",
+    paddingBottom: 12,
+  },
+  updateButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 90,
+  },
+  updateButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
 });
+

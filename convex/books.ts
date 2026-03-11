@@ -59,6 +59,37 @@ export const getBookById = query({
   },
 });
 
+// Get real-time book availability
+export const getBookAvailability = query({
+  args: { bookId: v.id("books") },
+  handler: async (ctx, args) => {
+    const book = await ctx.db.get(args.bookId);
+    if (!book) return null;
+
+    const activeReservations = await ctx.db
+      .query("borrowings")
+      .withIndex("by_book", (q) => q.eq("bookId", args.bookId))
+      .filter((q) => q.eq(q.field("status"), "reserved"))
+      .collect();
+
+    const activeBorrowings = await ctx.db
+      .query("borrowings")
+      .withIndex("by_book", (q) => q.eq("bookId", args.bookId))
+      .filter((q) => q.eq(q.field("status"), "borrowed"))
+      .collect();
+
+    return {
+      availableCopies: book.availableCopies,
+      totalCopies: book.totalCopies,
+      isAvailable: book.availableCopies > 0,
+      activeReservations: activeReservations.length,
+      activeBorrowings: activeBorrowings.length,
+      isReserved: book.isReserved,
+      reservedUntil: book.reservedUntil,
+    };
+  },
+});
+
 // Get all categories
 export const getCategories = query({
   handler: async (ctx) => {
@@ -76,6 +107,10 @@ export const createBook = mutation({
     description: v.string(),
     coverImage: v.string(),
     category: v.string(),
+    faculty: v.string(),
+    shelfLocation: v.string(),
+    floor: v.string(),
+    section: v.string(),
     isbn: v.string(),
     publisher: v.string(),
     publishedYear: v.number(),
@@ -90,6 +125,7 @@ export const createBook = mutation({
       ...args,
       totalRatings: 0,
       availableCopies: args.totalCopies,
+      isReserved: false,
       createdAt: Date.now(),
     });
     return bookId;
