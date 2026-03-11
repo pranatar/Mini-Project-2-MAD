@@ -1,21 +1,20 @@
-import React, { useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
-  TextInput,
-  Alert,
-} from "react-native";
-import { useRouter } from "expo-router";
+import { LoadingView } from "@/components/States";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/convex/_generated/api";
+import useTheme from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { useAuth } from "@/contexts/AuthContext";
-import useTheme from "@/hooks/useTheme";
-import { LoadingView } from "@/components/States";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import {
+  Alert,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -23,7 +22,7 @@ export default function ReadingGoals() {
   const router = useRouter();
   const { colors } = useTheme();
   const { userId } = useAuth();
-  
+
   const stats = useQuery(api.borrowings.getUserBorrowingStats, userId ? { userId } : "skip");
 
   // In a real app, these would come from the database
@@ -36,9 +35,9 @@ export default function ReadingGoals() {
 
   const finishedCount = stats.finished || 0;
   const annualProgress = Math.min(Math.round((finishedCount / annualGoal) * 100), 100);
-  
+
   // Mock monthly progress for demo
-  const monthlyFinished = Math.min(finishedCount, 1); 
+  const monthlyFinished = Math.min(finishedCount, 1);
   const monthlyProgress = Math.min(Math.round((monthlyFinished / monthlyGoal) * 100), 100);
 
   const handleEditGoal = (type: "Annual" | "Monthly") => {
@@ -47,8 +46,8 @@ export default function ReadingGoals() {
       "Enter the number of books you want to read:",
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Update", 
+        {
+          text: "Update",
           onPress: (value) => {
             const num = parseInt(value || "0");
             if (num > 0) {
@@ -80,7 +79,7 @@ export default function ReadingGoals() {
           <View style={styles.goalHeader}>
             <View>
               <Text style={[styles.goalType, { color: colors.textMuted }]}>ANNUAL GOAL</Text>
-              <Text style={[styles.goalTitle, { color: colors.text }]}>Read {annualGoal} books in 2024</Text>
+              <Text style={[styles.goalTitle, { color: colors.text }]}>Read {annualGoal} books in 2026</Text>
             </View>
             <TouchableOpacity onPress={() => handleEditGoal("Annual")}>
               <Ionicons name="create-outline" size={20} color={colors.primary} />
@@ -93,18 +92,18 @@ export default function ReadingGoals() {
               <Text style={[styles.progressText, { color: colors.textMuted }]}>{annualProgress}% completed</Text>
             </View>
             <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
-              <View 
+              <View
                 style={[
-                  styles.progressBarFill, 
+                  styles.progressBarFill,
                   { backgroundColor: colors.primary, width: `${annualProgress}%` }
-                ]} 
+                ]}
               />
             </View>
           </View>
-          
+
           <Text style={[styles.motivation, { color: colors.textMuted }]}>
-            {finishedCount >= annualGoal 
-              ? "🏆 Congratulations! You've reached your goal!" 
+            {finishedCount >= annualGoal
+              ? "🏆 Congratulations! You've reached your goal!"
               : `You only need ${annualGoal - finishedCount} more books to reach your goal.`}
           </Text>
         </View>
@@ -127,11 +126,11 @@ export default function ReadingGoals() {
               <Text style={[styles.progressText, { color: colors.textMuted }]}>{monthlyProgress}% completed</Text>
             </View>
             <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
-              <View 
+              <View
                 style={[
-                  styles.progressBarFill, 
+                  styles.progressBarFill,
                   { backgroundColor: colors.success, width: `${monthlyProgress}%` }
-                ]} 
+                ]}
               />
             </View>
           </View>

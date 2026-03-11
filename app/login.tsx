@@ -1,22 +1,22 @@
-import React, { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/convex/_generated/api";
+import useTheme from "@/hooks/useTheme";
+import { Ionicons } from "@expo/vector-icons";
+import { useMutation } from "convex/react";
 import { useRouter } from "expo-router";
+import React, { useState } from "react";
 import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  TextInput,
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@/contexts/AuthContext";
-import useTheme from "@/hooks/useTheme";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
 
 export default function Login() {
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function Login() {
       router.replace("/(tabs)");
     }
   }, [user]);
-  
+
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState<"mahasiswa" | "admin">("mahasiswa");
@@ -59,7 +59,7 @@ export default function Login() {
         role,
         googleId: `manual-${email.toLowerCase()}-${Date.now()}`,
       });
-      
+
       if (createdUser) {
         await saveSession(createdUser._id);
         router.replace("/(tabs)");
@@ -197,7 +197,7 @@ export default function Login() {
           <TouchableOpacity
             style={[
               styles.loginButton,
-              { 
+              {
                 backgroundColor: isLoading ? colors.textMuted : colors.primary,
                 opacity: isLoading ? 0.6 : 1
               }
@@ -219,8 +219,8 @@ export default function Login() {
           <TouchableOpacity
             style={styles.quickLoginButton}
             onPress={() => {
-              setEmail("student@university.edu");
-              setName("Student User");
+              setEmail("user-admin-account@university.edu");
+              setName("User or Admin Name");
             }}
           >
             <Ionicons name="flash" size={18} color={colors.primary} />

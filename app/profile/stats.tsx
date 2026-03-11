@@ -1,19 +1,18 @@
-import React from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
-} from "react-native";
-import { useRouter } from "expo-router";
+import { LoadingView } from "@/components/States";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/convex/_generated/api";
+import useTheme from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { useAuth } from "@/contexts/AuthContext";
-import useTheme from "@/hooks/useTheme";
-import { LoadingView } from "@/components/States";
+import { useRouter } from "expo-router";
+import {
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -21,7 +20,7 @@ export default function ReadingStats() {
   const router = useRouter();
   const { colors } = useTheme();
   const { userId } = useAuth();
-  
+
   const stats = useQuery(api.borrowings.getUserBorrowingStats, userId ? { userId } : "skip");
   const readingProgress = useQuery(api.readingProgress.getUserReadingProgress, userId ? { userId } : "skip");
 
@@ -88,11 +87,11 @@ export default function ReadingStats() {
                 </Text>
               </View>
               <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
-                <View 
+                <View
                   style={[
-                    styles.progressBarFill, 
+                    styles.progressBarFill,
                     { backgroundColor: colors.primary, width: `${item.percentage}%` }
-                  ]} 
+                  ]}
                 />
               </View>
               <Text style={[styles.pageInfo, { color: colors.textMuted }]}>
@@ -102,24 +101,7 @@ export default function ReadingStats() {
           ))
         )}
 
-        {/* Monthly Summary Mockup */}
-        <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 20 }]}>Activity Overview</Text>
-        <View style={[styles.activityCard, { backgroundColor: colors.surface }]}>
-          <View style={styles.activityRow}>
-            <Text style={[styles.activityLabel, { color: colors.text }]}>Books Borrowed this Month</Text>
-            <Text style={[styles.activityValue, { color: colors.primary }]}>4</Text>
-          </View>
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <View style={styles.activityRow}>
-            <Text style={[styles.activityLabel, { color: colors.text }]}>Reading Streak</Text>
-            <Text style={[styles.activityValue, { color: colors.warning }]}>5 Days</Text>
-          </View>
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <View style={styles.activityRow}>
-            <Text style={[styles.activityLabel, { color: colors.text }]}>Pages Read this Week</Text>
-            <Text style={[styles.activityValue, { color: colors.success }]}>124</Text>
-          </View>
-        </View>
+
       </View>
     </ScrollView>
   );

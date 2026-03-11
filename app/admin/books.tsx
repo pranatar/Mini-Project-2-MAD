@@ -1,23 +1,23 @@
-import React, { useState } from "react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
+import useTheme from "@/hooks/useTheme";
+import { Ionicons } from "@expo/vector-icons";
+import { useMutation, useQuery } from "convex/react";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
-  View,
-  TouchableOpacity,
-  FlatList,
   TextInput,
-  Modal,
-  Alert,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import useTheme from "@/hooks/useTheme";
-import { Id } from "@/convex/_generated/dataModel";
 
 const FACULTY_OPTIONS = [
   { label: "Filsafat", value: "Filsafat" },
@@ -40,7 +40,7 @@ export default function ManageBooks() {
     title: "",
     author: "",
     faculty: "",
-    floor: "Floor 2",
+    floor: "Floor 3",
     section: "Section A",
     shelfLocation: "",
     coverImage: "📚",
@@ -50,13 +50,13 @@ export default function ManageBooks() {
 
   // Queries
   const books = useQuery(api.books.getBooks, {}) ?? [];
-  
+
   // Mutations
   const addBook = useMutation(api.admin.addBook);
   const updateBook = useMutation(api.admin.updateBook);
   const deleteBook = useMutation(api.admin.deleteBook);
-  
-  const filteredBooks = books.filter(b => 
+
+  const filteredBooks = books.filter(b =>
     b.title.toLowerCase().includes(search.toLowerCase()) ||
     b.author.toLowerCase().includes(search.toLowerCase())
   );
@@ -118,8 +118,8 @@ export default function ManageBooks() {
       `Are you sure you want to delete "${title}"?`,
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
+        {
+          text: "Delete",
           style: "destructive",
           onPress: async () => {
             try {
@@ -157,7 +157,7 @@ export default function ManageBooks() {
         renderItem={({ item }) => (
           <View style={[styles.bookCard, { backgroundColor: colors.surface }]}>
             <View style={[styles.bookCover, { backgroundColor: colors.border }]}>
-               <Text style={styles.coverEmoji}>{item.coverImage}</Text>
+              <Text style={styles.coverEmoji}>{item.coverImage}</Text>
             </View>
             <View style={styles.bookInfo}>
               <Text style={[styles.bookTitle, { color: colors.text }]} numberOfLines={1}>{item.title}</Text>
@@ -170,13 +170,13 @@ export default function ManageBooks() {
               </View>
             </View>
             <View style={styles.actions}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.iconButton, { backgroundColor: colors.primary + "20" }]}
                 onPress={() => openEdit(item)}
               >
                 <Ionicons name="pencil" size={18} color={colors.primary} />
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.iconButton, { backgroundColor: colors.danger + "20" }]}
                 onPress={() => handleDelete(item._id, item.title)}
               >
@@ -188,7 +188,7 @@ export default function ManageBooks() {
       />
 
       {/* Floating Action Button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.fab, { backgroundColor: colors.primary }]}
         onPress={() => {
           resetForm();
@@ -219,7 +219,7 @@ export default function ManageBooks() {
               <TextInput
                 style={[styles.input, { color: colors.text, borderColor: colors.border }]}
                 value={formData.title}
-                onChangeText={(text) => setFormData({...formData, title: text})}
+                onChangeText={(text) => setFormData({ ...formData, title: text })}
                 placeholder="Book Title"
                 placeholderTextColor={colors.textMuted}
               />
@@ -228,7 +228,7 @@ export default function ManageBooks() {
               <TextInput
                 style={[styles.input, { color: colors.text, borderColor: colors.border }]}
                 value={formData.author}
-                onChangeText={(text) => setFormData({...formData, author: text})}
+                onChangeText={(text) => setFormData({ ...formData, author: text })}
                 placeholder="Author Name"
                 placeholderTextColor={colors.textMuted}
               />
@@ -241,32 +241,34 @@ export default function ManageBooks() {
                 <Text style={[styles.pickerButtonText, { color: formData.faculty ? colors.text : colors.textMuted }]}>
                   {formData.faculty || "Select Faculty"}
                 </Text>
-                <Ionicons 
-                  name={showFacultyPicker ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color={colors.textMuted} 
+                <Ionicons
+                  name={showFacultyPicker ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color={colors.textMuted}
                 />
               </TouchableOpacity>
 
               {showFacultyPicker && (
                 <View style={[styles.pickerContainer, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-                  {FACULTY_OPTIONS.map((option) => (
-                    <TouchableOpacity
-                      key={option.value}
-                      style={styles.pickerOption}
-                      onPress={() => {
-                        setFormData({...formData, faculty: option.value});
-                        setShowFacultyPicker(false);
-                      }}
-                    >
-                      <Text style={[styles.pickerOptionText, { color: colors.text }]}>
-                        {option.label}
-                      </Text>
-                      {formData.faculty === option.value && (
-                        <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                  <ScrollView showsVerticalScrollIndicator={true} style={styles.pickerScrollView}>
+                    {FACULTY_OPTIONS.map((option) => (
+                      <TouchableOpacity
+                        key={option.value}
+                        style={styles.pickerOption}
+                        onPress={() => {
+                          setFormData({ ...formData, faculty: option.value });
+                          setShowFacultyPicker(false);
+                        }}
+                      >
+                        <Text style={[styles.pickerOptionText, { color: colors.text }]}>
+                          {option.label}
+                        </Text>
+                        {formData.faculty === option.value && (
+                          <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
                 </View>
               )}
 
@@ -277,7 +279,7 @@ export default function ManageBooks() {
                   <TextInput
                     style={[styles.input, { color: colors.text, borderColor: colors.border }]}
                     value={formData.floor}
-                    onChangeText={(text) => setFormData({...formData, floor: text})}
+                    onChangeText={(text) => setFormData({ ...formData, floor: text })}
                     placeholder="Floor 2"
                     placeholderTextColor={colors.textMuted}
                   />
@@ -287,7 +289,7 @@ export default function ManageBooks() {
                   <TextInput
                     style={[styles.input, { color: colors.text, borderColor: colors.border }]}
                     value={formData.section}
-                    onChangeText={(text) => setFormData({...formData, section: text})}
+                    onChangeText={(text) => setFormData({ ...formData, section: text })}
                     placeholder="Section A"
                     placeholderTextColor={colors.textMuted}
                   />
@@ -297,7 +299,7 @@ export default function ManageBooks() {
                   <TextInput
                     style={[styles.input, { color: colors.text, borderColor: colors.border }]}
                     value={formData.shelfLocation}
-                    onChangeText={(text) => setFormData({...formData, shelfLocation: text})}
+                    onChangeText={(text) => setFormData({ ...formData, shelfLocation: text })}
                     placeholder="A-101"
                     placeholderTextColor={colors.textMuted}
                   />
@@ -308,7 +310,7 @@ export default function ManageBooks() {
               <TextInput
                 style={[styles.input, { color: colors.text, borderColor: colors.border }]}
                 value={formData.coverImage}
-                onChangeText={(text) => setFormData({...formData, coverImage: text})}
+                onChangeText={(text) => setFormData({ ...formData, coverImage: text })}
               />
 
               <TouchableOpacity
@@ -494,6 +496,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
     maxHeight: 200,
     overflow: "hidden",
+  },
+  pickerScrollView: {
+    maxHeight: 200,
   },
   pickerOption: {
     flexDirection: "row",
